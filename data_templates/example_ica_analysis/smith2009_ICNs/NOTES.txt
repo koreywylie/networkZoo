@@ -1,0 +1,4 @@
+-ref.: S.M. Smith, P.T. Fox, K.L. Miller, D.C. Glahn, P.M. Fox, C.E. Mackay, N. Filippini, K.E. Watkins, R. Toro, A.R. Laird, and C.F. Beckmann. Correspondence of the brain's functional architecture during activation and rest. Proc Natl Acad Sci USA (PNAS), 106(31):13040-13045, 2009.
+
+-downloaded from:
+http://www.fmrib.ox.ac.uk/datasets/brainmap+rsns/

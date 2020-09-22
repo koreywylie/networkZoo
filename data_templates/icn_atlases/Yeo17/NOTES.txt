@@ -1,0 +1,6 @@
+-masks from 17-Intrinsic Connectivity Network cortical parcellation of Yeo et al., 2011, J. of Neurophysiology
+	-masks converted from freesurfer's cifti format to 4d nifti.
+	-see 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/Yeo_JNeurophysiol11_MNI152.zip' folder for details.
+	-included masks here use 'liberal' cortical ribbon in freesurfer, for better comparison & visualizations w/ non-cifti volumes
+
+Yeo et al. (2011). The organization of the human cerebral cortex estimated by intrinsic functional connectivity. Journal of Neurophysiology, 106(3), 1125-1165.

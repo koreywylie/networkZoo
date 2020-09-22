@@ -1,0 +1,9 @@
+-Noise & confounder tissue probability maps for cerebrospinal fluid and white matter, included in SPM12.
+
+https://www.fil.ion.ucl.ac.uk/spm
+
+Ashburner J. and Friston K. (2005). Unified segmentation. Neuroimage 26(3), 839-851.
+
+Malone et al. (2015). Accurate automatic estimation of total intracranial volume: A nuisance variable with less nuisance. Neuroimage 104, 366-372.
+
+

@@ -1,0 +1,6 @@
+numpy
+pyqt>=5.0
+nilearn
+nipype
+jinja2
+matplotlib

@@ -1,0 +1,5 @@
+Shirer's 14-network parcellation, based on ICA decomposition of resting state activity. Sometimes referred to as the "Grecius" ICN atlas, based on senior author.
+
+Shirer et al. (2012). Decoding subject-driven cognitive states with whole-brain connectivity patterns. Cereberal Cortex 22, 158-165.
+
+

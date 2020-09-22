@@ -1,0 +1,22 @@
+Brief summary & referrences for anatomical volume files:
+
+-templates included in nilearn package
+
+-MNI152_2009_template.nii.gz:
+	-from /usr/local/afni18/abin/
+-MNI152_2009_template-withSkull.nii.gz:
+	-as above, includes skull
+
+
+-refs.: J.C. Mazziotta, A.W. Toga, A.C. Evans, P. Fox, J. Lancaster
+A probabilistic atlas of the human brain: theory and rationale for its development
+NeuroImage, 2 (1995), pp. 89-101
+
+J.A. Mazziotta, A.W. Toga, A.C. Evans, P.T. Fox, J. Lancaster, K. Zilles, R. Woods, T. Paus, G. Simpson, B. Pike, C. Holmes, D.L. Collins, P. Thompson, D. MacDonald, M. Iacoboni, T. Schormann, K. Amunts, N. Palomero-Gallagher, S. Geyer, L. Parsons, K. Narr, N. Kabani, G. LeGoualher, D. Boomsma, T. Cannon, R. Kawashima, B. Mazoyer
+A probabilistic atlas and reference system for the human brain: International Consortium for Brain Mapping (ICBM)
+Philos. Trans. R. Soc. London B Biol. Sci., 356 (2001), pp. 1293-1322
+
+J.C. Mazziotta, A.W. Toga, A.C. Evans, P.T. Fox, J. Lancaster, K. Zilles, R. Woods, T. Paus, G. Simpson, B. Pike, C.J. Holmes, D.L. Collins, P. Thompson, D. MacDonald, M. Iacoboni, T. Schormann, K. Amunts, N. Palomero-Gallagher, S. Geyer, L. Parson, K. Narr, N. Kabani, G. LeGoualher, D. Boomsma, T. Cannon, R. Kawashima, B. Mazoyer, International Consortium for Brain Mapping
+Four-dimensional probabilistic atlas of the human brain
+J. Am. Med. Inform. Assoc. (JAMIA), 8 (5) (2001), pp. 401-430
+

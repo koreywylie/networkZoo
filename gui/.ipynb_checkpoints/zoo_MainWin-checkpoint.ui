@@ -1,0 +1,1011 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1366</width>
+    <height>867</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>160</width>
+    <height>90</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>ICA to Intrinsic Connectivity Network Classification</string>
+  </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>icon.ico</normaloff>icon.ico</iconset>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <property name="minimumSize">
+    <size>
+     <width>1000</width>
+     <height>800</height>
+    </size>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout_3">
+    <item>
+     <widget class="QFrame" name="verticalFrame_controls">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <horstretch>1</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>500</width>
+        <height>800</height>
+       </size>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item>
+        <layout class="QGridLayout" name="gridLayout_5">
+         <item row="4" column="4">
+          <widget class="QListWidget" name="listWidget_ICNtemplates"/>
+         </item>
+         <item row="3" column="4">
+          <widget class="QPushButton" name="pushButton_icnload">
+           <property name="text">
+            <string>Load ICN templates</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QPushButton" name="pushButton_icaload">
+           <property name="text">
+            <string>Load ICA components</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="4">
+          <widget class="QLabel" name="label_6">
+           <property name="text">
+            <string>Intrinsic Connectivity Networks</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="2">
+          <widget class="QLabel" name="label_5">
+           <property name="text">
+            <string>&lt; &gt;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QListWidget" name="listWidget_ICAComponents"/>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_4">
+           <property name="text">
+            <string>ICA components</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <widget class="QPushButton" name="pushButton_runAnalysis">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="text">
+            <string>Run Correlation Analysis</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_9">
+         <property name="text">
+          <string>Possible Network Classification:</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <item>
+          <widget class="QLineEdit" name="lineEdit_ICANetwork"/>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_8">
+           <property name="text">
+            <string>&gt;</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="lineEdit_mappedICANetwork"/>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_8">
+         <item>
+          <widget class="QPushButton" name="pushButton_addNetwork">
+           <property name="text">
+            <string>Set Classification (ICA &gt; ICN)</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_rmNetwork">
+           <property name="text">
+            <string>Remove Classification</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QListWidget" name="listWidget_mappedICANetworks"/>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_7">
+         <item>
+          <widget class="QPushButton" name="pushButton_createOutput">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="text">
+            <string>Create Output Figure(s) and Table</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QScrollArea" name="scrollArea">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>9</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="widgetResizable">
+       <bool>true</bool>
+      </property>
+      <widget class="QWidget" name="scrollAreaWidgetContents">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>840</width>
+         <height>805</height>
+        </rect>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_5">
+        <item>
+         <widget class="QFrame" name="slice_frame">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+            <horstretch>9</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="styleSheet">
+           <string notr="true"/>
+          </property>
+          <property name="frameShape">
+           <enum>QFrame::StyledPanel</enum>
+          </property>
+          <property name="frameShadow">
+           <enum>QFrame::Raised</enum>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_3">
+           <item>
+            <widget class="QGroupBox" name="groupBox_2">
+             <property name="title">
+              <string>Plot Options</string>
+             </property>
+             <layout class="QHBoxLayout" name="horizontalLayout_4">
+              <item>
+               <layout class="QVBoxLayout" name="verticalLayout">
+                <item>
+                 <widget class="QRadioButton" name="radioButton_ortho">
+                  <property name="text">
+                   <string>Ortho</string>
+                  </property>
+                  <property name="checked">
+                   <bool>true</bool>
+                  </property>
+                  <attribute name="buttonGroup">
+                   <string notr="true">buttonGroup_xview</string>
+                  </attribute>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QRadioButton" name="radioButton_axial">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
+                  <property name="text">
+                   <string>Axial</string>
+                  </property>
+                  <attribute name="buttonGroup">
+                   <string notr="true">buttonGroup_xview</string>
+                  </attribute>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QRadioButton" name="radioButton_sagittal">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
+                  <property name="text">
+                   <string>Sagittal</string>
+                  </property>
+                  <attribute name="buttonGroup">
+                   <string notr="true">buttonGroup_xview</string>
+                  </attribute>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QRadioButton" name="radioButton_coronal">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
+                  <property name="text">
+                   <string>Coronal</string>
+                  </property>
+                  <attribute name="buttonGroup">
+                   <string notr="true">buttonGroup_xview</string>
+                  </attribute>
+                 </widget>
+                </item>
+                <item>
+                 <layout class="QHBoxLayout" name="horizontalLayout_14">
+                  <item>
+                   <widget class="QLabel" name="label">
+                    <property name="enabled">
+                     <bool>true</bool>
+                    </property>
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>125</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>125</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="layoutDirection">
+                     <enum>Qt::RightToLeft</enum>
+                    </property>
+                    <property name="text">
+                     <string>Number of Slices</string>
+                    </property>
+                    <property name="alignment">
+                     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QSpinBox" name="spinBox_numSlices">
+                    <property name="minimumSize">
+                     <size>
+                      <width>70</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>70</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="alignment">
+                     <set>Qt::AlignCenter</set>
+                    </property>
+                    <property name="value">
+                     <number>5</number>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QVBoxLayout" name="verticalLayout_4">
+                <item>
+                 <widget class="QPushButton" name="pushButton_showOverlap">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>200</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>200</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Go To Max. Overlapping (x,y,z)</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QFrame" name="frame">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                    <horstretch>1</horstretch>
+                    <verstretch>1</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>75</height>
+                   </size>
+                  </property>
+                  <layout class="QHBoxLayout" name="horizontalLayout_xcontrols">
+                   <item>
+                    <layout class="QVBoxLayout" name="verticalLayout_6">
+                     <item>
+                      <widget class="QSlider" name="horizontalSlider_Xslice">
+                       <property name="minimum">
+                        <number>-78</number>
+                       </property>
+                       <property name="maximum">
+                        <number>78</number>
+                       </property>
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QLabel" name="label_Xslice">
+                       <property name="text">
+                        <string>X</string>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </item>
+                   <item>
+                    <layout class="QVBoxLayout" name="verticalLayout_7">
+                     <item>
+                      <widget class="QSlider" name="horizontalSlider_Yslice">
+                       <property name="minimum">
+                        <number>-112</number>
+                       </property>
+                       <property name="maximum">
+                        <number>76</number>
+                       </property>
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QLabel" name="label_Yslice">
+                       <property name="text">
+                        <string>Y</string>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </item>
+                   <item>
+                    <layout class="QVBoxLayout" name="verticalLayout_8">
+                     <item>
+                      <widget class="QSlider" name="horizontalSlider_Zslice">
+                       <property name="minimum">
+                        <number>-70</number>
+                       </property>
+                       <property name="maximum">
+                        <number>85</number>
+                       </property>
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QLabel" name="label_Zslice">
+                       <property name="text">
+                        <string>Z</string>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignCenter</set>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QFrame" name="frame_plot">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>9</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>400</width>
+               <height>400</height>
+              </size>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_xplot">
+              <item>
+               <layout class="QVBoxLayout" name="verticalLayout_plot"/>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <layout class="QGridLayout" name="gridLayout" rowstretch="0" rowminimumheight="0"/>
+           </item>
+          </layout>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1366</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="separator"/>
+    <addaction name="action_LoadAnalysis"/>
+    <addaction name="action_SaveAnalysis"/>
+    <addaction name="action_ResetAnalysis"/>
+    <addaction name="separator"/>
+    <addaction name="action_runAnalysis"/>
+    <addaction name="separator"/>
+    <addaction name="action_createOutput"/>
+    <addaction name="separator"/>
+    <addaction name="action_Quit"/>
+   </widget>
+   <widget class="QMenu" name="menuEdit">
+    <property name="title">
+     <string>Edit</string>
+    </property>
+    <addaction name="action_EditPreferrences"/>
+    <addaction name="action_LoadSettingsScript"/>
+   </widget>
+   <widget class="QMenu" name="menuDisplay">
+    <property name="title">
+     <string>Display</string>
+    </property>
+    <addaction name="action_DisplayICAtime"/>
+    <addaction name="action_DisplayICAfreq"/>
+    <addaction name="action_ChangeTR"/>
+    <addaction name="separator"/>
+    <addaction name="action_ChangeAnatomicalVol"/>
+    <addaction name="action_ShowCrosshairs"/>
+    <addaction name="action_ThreshICAVol"/>
+    <addaction name="action_ShowICNTemplate"/>
+    <addaction name="action_ShowMappingName"/>
+    <addaction name="action_ShowICAName"/>
+    <addaction name="action_ShowICNTemplateName"/>
+    <addaction name="action_ChangeTextSize"/>
+    <addaction name="separator"/>
+    <addaction name="action_ResetDisplay"/>
+    <addaction name="action_SaveDisplay"/>
+   </widget>
+   <widget class="QMenu" name="menuMasks">
+    <property name="title">
+     <string>Masks</string>
+    </property>
+    <addaction name="action_createBinaryMasks"/>
+   </widget>
+   <widget class="QMenu" name="menuNetworks">
+    <property name="title">
+     <string>Networks</string>
+    </property>
+    <addaction name="action_LoadICAcomps"/>
+    <addaction name="action_RenameICAlist_select"/>
+    <addaction name="action_ClearICAlist_select"/>
+    <addaction name="action_ClearICAlist_all"/>
+    <addaction name="separator"/>
+    <addaction name="action_LoadICNtemplates"/>
+    <addaction name="action_RenameICNtemplates_select"/>
+    <addaction name="action_ClearICNlist_select"/>
+    <addaction name="action_ClearICNlist_all"/>
+    <addaction name="separator"/>
+    <addaction name="action_LoadNoisetemplates"/>
+   </widget>
+   <widget class="QMenu" name="menuMappings_2">
+    <property name="title">
+     <string>Classifications</string>
+    </property>
+    <addaction name="action_RenameClassifications_select"/>
+    <addaction name="separator"/>
+    <addaction name="action_DuplicateICA_select"/>
+    <addaction name="action_FindDuplicateICAClassifications"/>
+    <addaction name="action_FindDuplicateICNClassifications"/>
+    <addaction name="separator"/>
+    <addaction name="action_FindProbableClassifications"/>
+    <addaction name="action_FindQuestionableClassifications"/>
+    <addaction name="separator"/>
+    <addaction name="action_ClearClassifications_select"/>
+    <addaction name="action_ClearClassifications_all"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="separator"/>
+    <addaction name="action_ShowAboutInfo"/>
+    <addaction name="separator"/>
+    <addaction name="action_ShowStepByStepTutorial"/>
+    <addaction name="separator"/>
+    <addaction name="action_LoadDemoICAcomps"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuEdit"/>
+   <addaction name="menuNetworks"/>
+   <addaction name="menuMappings_2"/>
+   <addaction name="menuDisplay"/>
+   <addaction name="menuMasks"/>
+   <addaction name="menuHelp"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="action_LoadICAcomps">
+   <property name="text">
+    <string>Load ICA components</string>
+   </property>
+  </action>
+  <action name="action_ClearICAlist_all">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Clear all ICA components</string>
+   </property>
+  </action>
+  <action name="action_LoadICNtemplates">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Load ICN templates</string>
+   </property>
+  </action>
+  <action name="action_LoadNoisetemplates">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Load noise templates</string>
+   </property>
+  </action>
+  <action name="action_ClearICNlist_all">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Clear all templates</string>
+   </property>
+  </action>
+  <action name="action_Quit">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Quit</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
+   </property>
+  </action>
+  <action name="action_DisplayICAtime">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Display ICA time courses</string>
+   </property>
+  </action>
+  <action name="action_DisplayICAfreq">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Display ICA freq. spectrum</string>
+   </property>
+  </action>
+  <action name="action_ChangeTR">
+   <property name="text">
+    <string>Change TR</string>
+   </property>
+  </action>
+  <action name="action_LoadAnalysis">
+   <property name="text">
+    <string>Load analysis</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+L</string>
+   </property>
+  </action>
+  <action name="action_SaveAnalysis">
+   <property name="text">
+    <string>Save analysis</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="action_LoadSettingsScript">
+   <property name="text">
+    <string>Load settings configuration script</string>
+   </property>
+  </action>
+  <action name="action_ResetDisplay">
+   <property name="text">
+    <string>Reset display</string>
+   </property>
+  </action>
+  <action name="action_SaveDisplay">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Save current display</string>
+   </property>
+  </action>
+  <action name="action_createOutput">
+   <property name="text">
+    <string>Create and Save output</string>
+   </property>
+  </action>
+  <action name="action_createBinaryMasks">
+   <property name="text">
+    <string>Create masks from classifications</string>
+   </property>
+  </action>
+  <action name="action_ResetAnalysis">
+   <property name="text">
+    <string>Reset analysis</string>
+   </property>
+  </action>
+  <action name="action_LoadOneICA">
+   <property name="text">
+    <string>Load single ICA component</string>
+   </property>
+  </action>
+  <action name="action_LoadOneICN">
+   <property name="text">
+    <string>Load single ICN template</string>
+   </property>
+  </action>
+  <action name="action_runAnalysis">
+   <property name="text">
+    <string>Run full correlation analysis</string>
+   </property>
+  </action>
+  <action name="action_ShowCrosshairs">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show crosshairs</string>
+   </property>
+  </action>
+  <action name="action_ShowICAName">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show ICA file name</string>
+   </property>
+  </action>
+  <action name="action_ShowICNTemplateName">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show ICN template name</string>
+   </property>
+  </action>
+  <action name="action_ChangeTextSize">
+   <property name="text">
+    <string>Change text size</string>
+   </property>
+  </action>
+  <action name="action_ShowICNTemplate">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show ICN template vol.</string>
+   </property>
+  </action>
+  <action name="action_ShowMappingName">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show ICN classification name</string>
+   </property>
+  </action>
+  <action name="action_ThreshICAVol">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Threshold ICA vol.</string>
+   </property>
+  </action>
+  <action name="action_ClearClassifications_all">
+   <property name="text">
+    <string>Reset all ICA &gt; ICN classifications</string>
+   </property>
+  </action>
+  <action name="action_FindDuplicateICNClassifications">
+   <property name="text">
+    <string>Find duplicate ICN mappings</string>
+   </property>
+  </action>
+  <action name="action_ChangeAnatomicalVol">
+   <property name="text">
+    <string>Change sMRI vol.</string>
+   </property>
+  </action>
+  <action name="action_StartCorrelationAnalysis">
+   <property name="text">
+    <string>Start Ongoing Correlation Analysis</string>
+   </property>
+  </action>
+  <action name="action_RunCorrelationAnalysisOffline">
+   <property name="text">
+    <string>Run Correlation Analysis Offline</string>
+   </property>
+  </action>
+  <action name="action_correlateOnClick">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Correlate IC * ICN pair on click</string>
+   </property>
+   <property name="iconText">
+    <string>Correlate IC &amp; ICN on click</string>
+   </property>
+  </action>
+  <action name="action_ClearICAlist_select">
+   <property name="text">
+    <string>Clear select ICA components</string>
+   </property>
+  </action>
+  <action name="action_ClearICNlist_select">
+   <property name="text">
+    <string>Clear select templates</string>
+   </property>
+  </action>
+  <action name="action_RenameICAlist_select">
+   <property name="text">
+    <string>Rename ICA components</string>
+   </property>
+  </action>
+  <action name="action_RenameICNtemplates_select">
+   <property name="text">
+    <string>Rename ICN templates</string>
+   </property>
+  </action>
+  <action name="action_FindDuplicateICAClassifications">
+   <property name="text">
+    <string>Find duplicate ICA classifications</string>
+   </property>
+  </action>
+  <action name="action_DuplicateICA_select">
+   <property name="text">
+    <string>Duplicate select ICA comps for multiclassification</string>
+   </property>
+  </action>
+  <action name="action_ClearClassifications_select">
+   <property name="text">
+    <string>Remove select classifications</string>
+   </property>
+  </action>
+  <action name="action_RenameClassifications_select">
+   <property name="text">
+    <string>Rename select classifications</string>
+   </property>
+  </action>
+  <action name="action_ShowAboutInfo">
+   <property name="text">
+    <string>About</string>
+   </property>
+  </action>
+  <action name="action_ShowStepByStepTutorial">
+   <property name="text">
+    <string>Step-by-step tutorial</string>
+   </property>
+  </action>
+  <action name="action_LoadICAcomps_on_startup">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Load default ICA comps on startup</string>
+   </property>
+  </action>
+  <action name="action_LoadICNtemplates_on_startup">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Load default ICN templates on startup</string>
+   </property>
+  </action>
+  <action name="action_ChangeDefaultStructuralVol">
+   <property name="text">
+    <string>Change default sMRI background</string>
+   </property>
+  </action>
+  <action name="action_ChangeDefaultOutputDir">
+   <property name="text">
+    <string>Change default output dir.</string>
+   </property>
+  </action>
+  <action name="action_LoadNoiseTemplates_on_startup">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Load noise templates on startup</string>
+   </property>
+  </action>
+  <action name="action_ResetSettings_to_default">
+   <property name="text">
+    <string>Reset settings configuration to defaults</string>
+   </property>
+  </action>
+  <action name="action_ChangeDefaultNoiseTemplate_dir">
+   <property name="text">
+    <string>Change default noise template dir.</string>
+   </property>
+  </action>
+  <action name="action_ChangeDefaultSettings">
+   <property name="text">
+    <string>Change other default settings</string>
+   </property>
+  </action>
+  <action name="action_FindProbableClassifications">
+   <property name="text">
+    <string>Find unmapped probable classifications</string>
+   </property>
+  </action>
+  <action name="action_FindQuestionableClassifications">
+   <property name="text">
+    <string>Find questionable classifications</string>
+   </property>
+  </action>
+  <action name="action_EditPreferrences">
+   <property name="text">
+    <string>Preferrences</string>
+   </property>
+  </action>
+  <action name="action_LoadDemoICAcomps">
+   <property name="text">
+    <string>Load demo ICA comps</string>
+   </property>
+  </action>
+ </widget>
+ <tabstops>
+  <tabstop>lineEdit_mappedICANetwork</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+ <buttongroups>
+  <buttongroup name="buttonGroup_xview"/>
+ </buttongroups>
+</ui>

@@ -1,0 +1,23 @@
+{
+  "output_directory": "saved_output",
+  "ica":{
+    "directory": "data_example/smith2009_ICNs/ica20.nii",
+    "template": "*",
+    "search_pattern": "([a-zA-Z0-9_\\-\\.]+)(\\.nii\\.gz|\\.nii|\\.img)$"
+  },
+  "icn":{
+    "directory": "data_templates/icn_atlases/Yeo7",
+    "template": "*",
+    "search_pattern": "([a-zA-Z0-9_\\-\\.]+)(\\.nii\\.gz|\\.nii)$",
+    "extra_items": ["...nontemplate_ICN"],
+    "labels_file": ""
+  },
+  "noise":{
+    "directory": "data_templates/noise_confounders",
+    "template": "*",
+    "search_pattern": "([a-zA-Z0-9_\\-\\.]+)(\\.nii\\.gz|\\.nii)$",
+    "extra_items": ["...Noise_artifact"],
+    "discarded_icns": []
+  },
+  "smri_file": "data_templates/anatomical/MNI152_2009_template-withSkull.nii.gz"
+}

@@ -1,0 +1,6 @@
+Automated Anatomical Labelling (AAL) regional parcellation atlases
+
+-AAL90: includes 90 cortical & subcortical regions, 45 per hemisphere
+-AAL116: as above, but includes cerebellar regions
+
+Tzourio-Mazoyer et al. (2002). Automated anatomical labelling of activations in SPM using a macroscopic anatomical parcellation of the MNI MRI single-subject brain. Neuroimage 15, 273-289.

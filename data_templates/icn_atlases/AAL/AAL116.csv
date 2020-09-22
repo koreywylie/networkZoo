@@ -1,0 +1,117 @@
+ICN Filename & Index:,ICN Label:,Noise Classification:,AAL Index Number:,Full Name:
+"AAL116,1",Precentral_L,ICN,2001,Left Precentral Gyrus
+"AAL116,2",Precentral_R,ICN,2002,Right Precentral Gyrus
+"AAL116,3",Frontal_Sup_L,ICN,2101,Left Superior Frontal Gyrus
+"AAL116,4",Frontal_Sup_R,ICN,2102,Right Superior Frontal Gyrus
+"AAL116,5",Frontal_Sup_Orb_L,ICN,2111,Left Orbitofrontal Cortex
+"AAL116,6",Frontal_Sup_Orb_R,ICN,2112,Right Orbitofrontal Cortex
+"AAL116,7",Frontal_Mid_L,ICN,2201,Left Middle Frontal Gyrus
+"AAL116,8",Frontal_Mid_R,ICN,2202,Right Middle Frontal Gyrus
+"AAL116,9",Frontal_Mid_Orb_L,ICN,2211,Left Orbitofrontal Cortex
+"AAL116,10",Frontal_Mid_Orb_R,ICN,2212,Right Orbitofrontal Cortex
+"AAL116,11",Frontal_Inf_Oper_L,ICN,2301,Left Frontal Operculum
+"AAL116,12",Frontal_Inf_Oper_R,ICN,2302,Right Frontal Operculum
+"AAL116,13",Frontal_Inf_Tri_L,ICN,2311,Left Inferior Frontal Gyrus
+"AAL116,14",Frontal_Inf_Tri_R,ICN,2312,Right Inferior Frontal Gyrus
+"AAL116,15",Frontal_Inf_Orb_L,ICN,2321,Left Orbitofrontal Cortex
+"AAL116,16",Frontal_Inf_Orb_R,ICN,2322,Right Orbitofrontal Cortex
+"AAL116,17",Rolandic_Oper_L,ICN,2331,Left Parietal Operculum
+"AAL116,18",Rolandic_Oper_R,ICN,2332,Right Parietal Operculum
+"AAL116,19",Supp_Motor_Area_L,ICN,2401,Left Supplementary Motor Area
+"AAL116,20",Supp_Motor_Area_R,ICN,2402,Right Supplementary Motor Area
+"AAL116,21",Olfactory_L,ICN,2501,Left Olfactory Cortex
+"AAL116,22",Olfactory_R,ICN,2502,Right Olfactory Cortex
+"AAL116,23",Frontal_Sup_Medial_L,ICN,2601,Left Medial Prefrontal Cortex
+"AAL116,24",Frontal_Sup_Medial_R,ICN,2602,Right Medial Prefrontal Cortex
+"AAL116,25",Frontal_Mid_Orb_L,ICN,2611,Left Orbitofrontal Cortex
+"AAL116,26",Frontal_Mid_Orb_R,ICN,2612,Right Orbitofrontal Cortex
+"AAL116,27",Rectus_L,ICN,2701,Left Orbitofrontal Cortex
+"AAL116,28",Rectus_R,ICN,2702,Right Orbitofrontal Cortex
+"AAL116,29",Insula_L,ICN,3001,Left Insula
+"AAL116,30",Insula_R,ICN,3002,Right Insula
+"AAL116,31",Cingulum_Ant_L,ICN,4001,Left Anterior Cingulate Cortex
+"AAL116,32",Cingulum_Ant_R,ICN,4002,Right Anterior Cingulate Cortex
+"AAL116,33",Cingulum_Mid_L,ICN,4011,Left Middle Cingulate Cortex
+"AAL116,34",Cingulum_Mid_R,ICN,4012,Right Middle Cingulate Cortex
+"AAL116,35",Cingulum_Post_L,ICN,4021,Left Posterior Cingulate Cortex
+"AAL116,36",Cingulum_Post_R,ICN,4022,Right Posterior Cingulate Cortex
+"AAL116,37",Hippocampus_L,ICN,4101,Left Hippocampus
+"AAL116,38",Hippocampus_R,ICN,4102,Right Hippocampus
+"AAL116,39",ParaHippocampal_L,ICN,4111,Left Parahippocampal Gyrus
+"AAL116,40",ParaHippocampal_R,ICN,4112,Right Parahippocampal Gyrus
+"AAL116,41",Amygdala_L,ICN,4201,Left Amygdala
+"AAL116,42",Amygdala_R,ICN,4202,Right Amygdala
+"AAL116,43",Calcarine_L,ICN,5001,Left Calcarine Sulcus
+"AAL116,44",Calcarine_R,ICN,5002,Right Calcarine Sulcus
+"AAL116,45",Cuneus_L,ICN,5011,Left Cuneus
+"AAL116,46",Cuneus_R,ICN,5012,Right Cuneus
+"AAL116,47",Lingual_L,ICN,5021,Left Lingual Gyrus
+"AAL116,48",Lingual_R,ICN,5022,Right Lingual Gyrus
+"AAL116,49",Occipital_Sup_L,ICN,5101,Left Superior Occipital Gyrus
+"AAL116,50",Occipital_Sup_R,ICN,5102,Right Superior Occipital Gyrus
+"AAL116,51",Occipital_Mid_L,ICN,5201,Left Middle Occipital Gyrus
+"AAL116,52",Occipital_Mid_R,ICN,5202,Right Middle Occipital Gyrus
+"AAL116,53",Occipital_Inf_L,ICN,5301,Left Inferior Occipital Gyrus
+"AAL116,54",Occipital_Inf_R,ICN,5302,Right Inferior Occipital Gyrus
+"AAL116,55",Fusiform_L,ICN,5401,Left Fusiform Gyrus
+"AAL116,56",Fusiform_R,ICN,5402,Right Fusiform Gyrus
+"AAL116,57",Postcentral_L,ICN,6001,Left Postcentral Gyrus
+"AAL116,58",Postcentral_R,ICN,6002,Right Postcentral Gyrus
+"AAL116,59",Parietal_Sup_L,ICN,6101,Left Superior Parietal Lobule
+"AAL116,60",Parietal_Sup_R,ICN,6102,Right Superior Parietal Lobule
+"AAL116,61",Parietal_Inf_L,ICN,6201,Left Inferior Parietal Lobule
+"AAL116,62",Parietal_Inf_R,ICN,6202,Right Inferior Parietal Lobule
+"AAL116,63",SupraMarginal_L,ICN,6211,Left Supramarginal Gyrus
+"AAL116,64",SupraMarginal_R,ICN,6212,Right Supramarginal Gyrus
+"AAL116,65",Angular_L,ICN,6221,Left Angular Gyrus
+"AAL116,66",Angular_R,ICN,6222,Right Angular Gyrus
+"AAL116,67",Precuneus_L,ICN,6301,Left Precuneus
+"AAL116,68",Precuneus_R,ICN,6302,Right Precuneus
+"AAL116,69",Paracentral_Lobule_L,ICN,6401,Left Paracentral Lobule
+"AAL116,70",Paracentral_Lobule_R,ICN,6402,Right Paracentral Lobule
+"AAL116,71",Caudate_L,ICN,7001,Left Caudate
+"AAL116,72",Caudate_R,ICN,7002,Right Caudate
+"AAL116,73",Putamen_L,ICN,7011,Left Putamen
+"AAL116,74",Putamen_R,ICN,7012,Right Putamen
+"AAL116,75",Pallidum_L,ICN,7021,Left Pallidum
+"AAL116,76",Pallidum_R,ICN,7022,Right Pallidum
+"AAL116,77",Thalamus_L,ICN,7101,Left Thalamus
+"AAL116,78",Thalamus_R,ICN,7102,Right Thalamus
+"AAL116,79",Heschl_L,ICN,8101,Left Heschl's Gyrus
+"AAL116,80",Heschl_R,ICN,8102,Right Heschl's Gyrus
+"AAL116,81",Temporal_Sup_L,ICN,8111,Left Superior Temporal Gyrus
+"AAL116,82",Temporal_Sup_R,ICN,8112,Right Superior Temporal Gyrus
+"AAL116,83",Temporal_Pole_Sup_L,ICN,8121,Left Superior Temporal Pole
+"AAL116,84",Temporal_Pole_Sup_R,ICN,8122,Right Superior Temporal Pole
+"AAL116,85",Temporal_Mid_L,ICN,8201,Left Middle Temporal Gyrus
+"AAL116,86",Temporal_Mid_R,ICN,8202,Right Middle Temporal Gyrus
+"AAL116,87",Temporal_Pole_Mid_L,ICN,8211,Left Middle Temporal Pole
+"AAL116,88",Temporal_Pole_Mid_R,ICN,8212,Right Middle Temporal Pole
+"AAL116,89",Temporal_Inf_L,ICN,8301,Left Inferior Temporal Gyrus
+"AAL116,90",Temporal_Inf_R,ICN,8302,Right Inferior Temporal Gyrus
+"AAL116,91",Cerebelum_Crus1_L,ICN,9001,Left Cerebellar Crus I
+"AAL116,92",Cerebelum_Crus1_R,ICN,9002,Right Cerebellar Crus I
+"AAL116,93",Cerebelum_Crus2_L,ICN,9011,Left Cerebellar Crus II
+"AAL116,94",Cerebelum_Crus2_R,ICN,9012,Right Cerebellar Crus II
+"AAL116,95",Cerebelum_3_L,ICN,9021,Left Cerebellar Lobule III
+"AAL116,96",Cerebelum_3_R,ICN,9022,Right Cerebellar Lobule III
+"AAL116,97",Cerebelum_4_5_L,ICN,9031,Left Cerebellar Lobule IV/V
+"AAL116,98",Cerebelum_4_5_R,ICN,9032,Right Cerebellar Lobule IV/V
+"AAL116,99",Cerebelum_6_L,ICN,9041,Left Cerebellar Lobule VI
+"AAL116,100",Cerebelum_6_R,ICN,9042,Right Cerebellar Lobule VI
+"AAL116,101",Cerebelum_7b_L,ICN,9051,Left Cerebellar Lobule VIIb
+"AAL116,102",Cerebelum_7b_R,ICN,9052,Right Cerebellar Lobule VIIb
+"AAL116,103",Cerebelum_8_L,ICN,9061,Left Cerebellar Lobule VIII
+"AAL116,104",Cerebelum_8_R,ICN,9062,Right Cerebellar Lobule VIII
+"AAL116,105",Cerebelum_9_L,ICN,9071,Left Cerebellar Lobule IX
+"AAL116,106",Cerebelum_9_R,ICN,9072,Right Cerebellar Lobule IX
+"AAL116,107",Cerebelum_10_L,ICN,9081,Left Cerebellar Lobule X
+"AAL116,108",Cerebelum_10_R,ICN,9082,Right Cerebellar Lobule X
+"AAL116,109",Vermis_1_2,ICN,9100,Lobule I/II of Cerebellar Vermis
+"AAL116,110",Vermis_3,ICN,9110,Lobule III of Cerebellar Vermis
+"AAL116,111",Vermis_4_5,ICN,9120,Lobule IV/V of Cerebellar Vermis
+"AAL116,112",Vermis_6,ICN,9130,Lobule VI of Cerebellar Vermis
+"AAL116,113",Vermis_7,ICN,9140,Lobule VII of Cerebellar Vermis
+"AAL116,114",Vermis_8,ICN,9150,Lobule VIII of Cerebellar Vermis
+"AAL116,115",Vermis_9,ICN,9160,Lobule IX of Cerebellar Vermis
+"AAL116,116",Vermis_10,ICN,9170,Lobule X of Cerebellar Vermis
