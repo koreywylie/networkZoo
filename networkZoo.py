@@ -38,7 +38,7 @@ sys.path.append(os.getcwd())  # default location of script, path needed for "Int
 sys.path.append(opj(os.getcwd(), 'config_settings'))
 sys.path.append(opj(os.getcwd(), 'functions'))
 sys.path.append(opj(os.getcwd(), 'gui'))
-mypath = os.getcwd()
+# mypath = os.getcwd()   #9/30/2020 --kw-- moved inside main loop
 
 
 # Backup configuration settings, if needed
@@ -69,8 +69,8 @@ warnings.filterwarnings('ignore', '.*No contour levels were found.*')  #binary R
 
 
 
-ANATOMICAL_TO_TIMESERIES_PLOT_RATIO = 5
-CONFIGURATION_FILE = 'config_settings/config.json'
+# ANATOMICAL_TO_TIMESERIES_PLOT_RATIO = 5   #9/30/2020 --kw-- moved inside main loop
+# CONFIGURATION_FILE = 'config_settings/config.json'  #9/30/2020 --kw-- moved inside main loop
 
 
 class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
@@ -93,8 +93,12 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
         self.matches = {} # dict of top matches, indexed by ic name
         
         # Configuration file defaults
-        cfile = configuration_file if isinstance(configuration_file, str) else CONFIGURATION_FILE
-        self.load_configuration(cfile) if os.path.isfile(cfile) else self.load_configuration()
+        mypath = os.getcwd()
+        cfile = 'config_settings/config.json'
+        if configuration_file is not None:
+            if os.path.isfile(configuration_file):
+                cfile = configuration_file
+        self.load_configuration(cfile, mypath, config_backup)
         
         # Setup display based on config settings
         if hasattr(self, 'config'):
@@ -165,9 +169,12 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
 
         
         # Qt set-up for spatial & time data displays
-        anat_sp = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        ANATOMICAL_TO_TIMESERIES_PLOT_RATIO = 5
+        anat_sp = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, 
+                                        QtWidgets.QSizePolicy.Preferred)
         anat_sp.setVerticalStretch(ANATOMICAL_TO_TIMESERIES_PLOT_RATIO)
-        ts_sp = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        ts_sp = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, 
+                                      QtWidgets.QSizePolicy.Preferred)
         ts_sp.setVerticalStretch(1)
         
         # figure for spatial data
@@ -305,11 +312,9 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
     #-------------------------------------------------
     ### Functions to set default for configuration ###
     #-------------------------------------------------
-    def load_configuration(self, fname=None):
+    def load_configuration(self, fname=None, mypath=None, config_backup=None):
         """Loads configuration settings, either from stored .json file, or re-load from stored config"""
-
-        if 'mypath' not in locals(): mypath = None
-        if 'config_backup' not in locals(): config_backup = None
+        
         warning_flag, configData = False, None
         if fname:
             if isinstance(fname, str):
@@ -357,6 +362,8 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
         
         self.config_file = fname if isinstance(fname, str) else None
         if configData:
+            if 'base_directory' in configData.keys():
+                configData['base_directory'] = mypath
             self.config = io.InputHandling.config_check_defaults(configData, 
                                                                  mypath=mypath, 
                                                                  config_backup=config_backup)
