@@ -1,3 +1,5 @@
+"""Functions used to save images & csv output as part of NetworkZoo"""
+
 # Python Libraries
 from os.path import join as opj  # method to join strings of file paths
 from string import digits
@@ -8,6 +10,8 @@ from PyQt5 import QtWidgets
 from PyQt5.QtCore import QObject, pyqtSignal, Qt, QThread, QRectF
 from PyQt5.QtWidgets import QDialog
 from PyQt5.QtGui import QColor, QPixmap, QPainter  #Qt fns. needed to draw png
+
+from nilearn import image  # library for neuroimaging
 
 # Output imports
 import csv
@@ -28,8 +32,8 @@ class ImageSaver(QObject):
     ij_changed = pyqtSignal(int)
     ic_changed = pyqtSignal(str)
     templ_changed = pyqtSignal(str)
-    interrupt_mapping = pyqtSignal()
-    ij_finished = pyqtSignal()
+    interrupt_mapping = pyqtSignal(bool)
+    ij_finished = pyqtSignal(bool)
     
     
     ### NOTES on inputs: ###
@@ -73,6 +77,9 @@ class ImageSaver(QObject):
         self.csvTableName = ''
         self.outputDir = ''
         self.output_files = []
+        
+        # Reload all images before plotting, reseting to non-downscaled res.
+        self.reload_imgs()
     
     # fns. to access signals from another class
     def registerSignal_maxIJ(self, obj):
@@ -87,8 +94,40 @@ class ImageSaver(QObject):
     def registerSignal_templ(self, obj):
         if (hasattr(self, 'templ_changed')):
             self.templ_changed.connect(obj)
-    def interrupt(self): #fn. called when window is closed
+    def interrupt(self, obj): #fn. called when window is closed
         self.stopImageSaver = True  #breaks loops
+    
+    def reload_img(self, filepath, vol_ind=0, fourD=False):
+        """Reloads img, repeating original loading as part of NetworkZoo"""
+        
+        r_img = None
+        if fourD and (vol_ind is not None):
+            r_img = image.index_img(filepath, vol_ind)
+        elif not fourD and (vol_ind > 0):
+            img = image.load_img(filepath)
+            r_img = image.new_img_like(img, img.get_fdata(caching='unchanged')==vol_ind, 
+                                       copy_header=True)
+        else:
+            r_img = image.load_img(filepath)
+        return r_img
+
+    
+    def reload_imgs(self):
+        """Reloads all nifti vol. images, 
+        for high-res. plotting after downsampling for display"""
+        
+        print('Reloading all images/volumes...')
+        for listName in ['ica', 'icn']:
+            for lookup in self.gd[listName].keys():
+                if self.gd[listName][lookup]['img']:                
+                    filepath = self.gd[listName][lookup]['filepath']
+                    if os.path.exists(filepath):
+                        vol_ind = self.gd[listName][lookup]['vol_ind']
+                        fourD = self.gd[listName][lookup]['4d_nii']
+                        self.gd[listName][lookup]['img'] = self.reload_img(filepath, 
+                                                                           vol_ind=vol_ind, 
+                                                                           fourD=fourD)
+                
     
     
     @QtCore.pyqtSlot()
@@ -100,7 +139,13 @@ class ImageSaver(QObject):
         if  not all(key in self.gd.keys() for key in ['mapped', 'mapped_ica']):
             print('ERROR: incorrectly formatted input arg: "gd" ')
             return
-                    
+        elif len(self.gd['mapped'].keys()) == 0:
+            message = 'WARNING: No ICA comp. > ICN template mappings currently set,'
+            message +=' no output to generate!'
+            print(message)
+            return
+            
+            
         output_path = self.output_path
         output_files = []
         if output_path:
@@ -134,25 +179,29 @@ class ImageSaver(QObject):
                 images_ICA_fnames_flagged = []
                 images_ICN_names = []
                 images_ICN_names_flagged = []
+                
                 for k, mapping_lookup in enumerate(self.gd['mapped'].keys()):
+                    print('Creating subplots for mapping:  ' + mapping_lookup)
+                    
                     if self.stopImageSaver: break   # called from outside fn., interrupts for loop
                     ij += 1
                     self.ij_changed.emit(ij)
-                    self.ic_changed.emit(mapping_lookup)
-
+                    self.ic_changed.emit(str(mapping_lookup))
+                    
                     ica_lookup = self.gd['mapped'][mapping_lookup]['ica_lookup']
                     ica_name   = self.gd['mapped'][mapping_lookup]['ica_custom_name']
                     icn_lookup = self.gd['mapped'][mapping_lookup]['icn_lookup']
                     icn_name   = self.gd['mapped'][mapping_lookup]['icn_custom_name']
                     icn_name.strip('...') # "...non-template ICN", "...non-template Noise", etc.
-
+                    
                     self.listWidget_mapped.setCurrentItem(self.gd['mapped'][mapping_lookup]['mapped_item'])
                     self.listWidget_ICN.setCurrentItem(self.gd['icn'][icn_lookup]['widget'])
                     self.update_plots()
-
+                    
                     fname = opj(self.outputDir, '%s--%s.png' % (ica_name, icn_name))
                     fname_saved = ImageSaver.save_display(self.figure_x, self.figure_t, 
                                                           fname, cleanup=True)
+                    
                     images_to_concat.append(fname_saved)
                     images_ICA_fnames.append(ica_name)
                     images_ICN_names.append(icn_name)
@@ -168,10 +217,14 @@ class ImageSaver(QObject):
                                                              if (images_ICA_fnames[k][-1].isdigit() 
                                                                  and ',' in images_ICA_fnames[k])
                                                              else float('inf')))
-                images_to_concat = [images_to_concat[k] for k in ICAnames_inds_sorted] #start w/ non-noise...
-                images_to_concat = images_to_concat + images_to_concat_flagged #...add noise to end
-                for flagged in images_to_concat_flagged: images_to_concat.remove(flagged) #...& rm. earlier instance
-                images_ICA_fnames = [images_ICA_fnames[k] for k in ICAnames_inds_sorted] #...& ad infinitum
+                #start w/ non-noise...
+                images_to_concat = [images_to_concat[k] for k in ICAnames_inds_sorted] 
+                #...add noise to end
+                images_to_concat = images_to_concat + images_to_concat_flagged 
+                #...& rm. earlier instance
+                for flagged in images_to_concat_flagged: images_to_concat.remove(flagged)
+                #...& ad infinitum
+                images_ICA_fnames = [images_ICA_fnames[k] for k in ICAnames_inds_sorted]
                 images_ICA_fnames = images_ICA_fnames + images_ICA_fnames_flagged
                 for flagged in images_ICA_fnames_flagged: images_ICA_fnames.remove(flagged)
                 images_ICN_names = [images_ICN_names[k] for k in ICAnames_inds_sorted]
@@ -181,14 +234,15 @@ class ImageSaver(QObject):
                 # Create single png with all mappings
                 if self.stopImageSaver: return   # called from outside fn., interrupts fn.
                 self.ic_changed.emit('Concatenating all mapping figures...')
-
+                print('Concatenating all mapping figures...')
+                
                 output_images = ImageSaver.concat_images(images_to_concat, self.concatFigureName,
                                                          max_rows=self.config['output']['figure_rows'],
                                                          max_cols=self.config['output']['figure_cols'],
                                                          concat_vertical=self.config['output']['concat_vertical'], 
                                                          cleanup=True)
-                output_files  += output_images
-                if self.stopImageSaver: return   # called from outside fn., interrupts fn.
+                if output_images: output_files  += output_images
+                if self.stopImageSaver: return   # called from outside fn., interrupts fn. 
                 ij += len(images_to_concat)
                 self.ij_changed.emit(ij)
                 
@@ -198,18 +252,22 @@ class ImageSaver(QObject):
             #              even if not mapped or in 4d Nifti
             if self.config['output']['create_table']:
                 icn_info = {}
+                i_key = -1
+                ica_keys_unsorted = []
                 for ica_lookup in self.gd['ica'].keys():
                     if self.stopImageSaver: break   # called from outside fn., interrupts for loop
                     if ica_lookup in self.gd['mapped_ica'].keys():
                         for icn_lookup in self.gd['mapped_ica'][ica_lookup].keys():
-                            if self.stopImageSaver: break   # called from outside fn., interrupts for loop
+                            if self.stopImageSaver: break
                             map_item = self.gd['mapped_ica'][ica_lookup][icn_lookup]
-                            mapping_lookup = map_item.data(Qt.UserRole)
+                            mapping_lookup = str(map_item.data(Qt.UserRole))
                             self.ic_changed.emit(mapping_lookup)
                             ica_custom_name = self.gd['mapped'][mapping_lookup]['ica_custom_name']
                             icn_custom_name = self.gd['mapped'][mapping_lookup]['icn_custom_name']
 
-                            noise_id = 'noise' if re.match('\\.*noise', icn_lookup, flags=re.IGNORECASE) else 'ICN'
+                            noise_id = 'noise' if re.match('\\.*noise', 
+                                                           icn_lookup, 
+                                                           flags=re.IGNORECASE) else 'ICN'
                             if icn_lookup in self.extra_items:
                                 corr_r = float('inf')
                             elif ((self.corrs is not None) 
@@ -218,29 +276,46 @@ class ImageSaver(QObject):
                                 corr_r = '%0.2f' % self.corrs[ica_lookup][icn_lookup]
                             else:
                                 corr_r = float('inf')
-                            icn_info[ica_custom_name] = (icn_custom_name, noise_id, icn_lookup, corr_r)
+                            
+                            i_key += 1
+                            ica_keys_unsorted.append(ica_custom_name)
+                            icn_info[i_key] = (ica_custom_name, icn_custom_name, noise_id, 
+                                               icn_lookup, corr_r)
+
+                # lambda fn. separates string w/ ',' then casts last part into digit if needed
+                ica_keys_sorted = sorted(ica_keys_unsorted, 
+                                         key=lambda item: (int(item.partition(',')[-1]) 
+                                                           if (item[-1].isdigit() 
+                                                               and ',' in item)
+                                                           else float('inf')))
+                icn_info_sorted = {}
+                k_ord = -1
+                for key in ica_keys_sorted:
+                    k_ord += 1
+                    k = ica_keys_unsorted.index(key)
+                    icn_info_sorted[k_ord] = icn_info[k]
+                    ica_keys_unsorted[k] = ''
+                
                 ij += 1
                 self.ij_changed.emit(ij)
                 self.ic_changed.emit('Exporting mappings as .csv file...')
+                print('Exporting mappings as .csv file...')
 
                 with open(self.csvTableName, 'w') as f:
                     writer = csv.writer(f)
                     writer.writerow(('ICA component:', 'ICN Label:', 'Noise Classification:', 
                                      'Template match:', 'Corr. w/ template:'))
-                    # lambda fn. below separates string w/ ',' then casts last part into digit if needed
-                    for k in sorted(icn_info.keys(), 
-                                    key=lambda item: (int(item.partition(',')[-1]) 
-                                                             if (item[-1].isdigit() 
-                                                                 and ',' in item)
-                                                             else float('inf'))):
-                        writer.writerow((k, icn_info[k][0], icn_info[k][1], icn_info[k][2], icn_info[k][3]))
-                output_files += [self.csvTableName]
+                    for k in icn_info_sorted.keys():
+                        writer.writerow((icn_info_sorted[k][0], icn_info_sorted[k][1], 
+                                         icn_info_sorted[k][2], icn_info_sorted[k][3], 
+                                         icn_info_sorted[k][4]))
+                output_files.append(self.csvTableName)
                 ij += 1
                 self.ij_changed.emit(ij)
 
             # Finalities
             self.output_files = output_files # list of all output files, for outside referrence
-            self.ij_finished.emit()
+            self.ij_finished.emit(True)
                 
 
     @staticmethod
@@ -295,6 +370,8 @@ class ImageSaver(QObject):
     def concat_images(fig_pieces, fname, cleanup=True, max_rows=10, max_cols=1, 
                       concat_vertical=True, recurse_call=False):
         """Concatenates saved images into single file, using PyQt5"""
+        
+        if len(fig_pieces) == 0: return
         
         output_images = []
         
@@ -439,7 +516,7 @@ class ImageSaver(QObject):
         success = painter.end()
         if success:
             success = pixCanvas.save(fname, "PNG")
-            output_images += [fname]
+            output_images.append(fname)
         if success and cleanup:
             for fig_file in fig_pieces:
                 if os.path.isfile(fig_file):
@@ -463,7 +540,7 @@ class newDialogMod(QDialog):
         
     def closeEvent(self, event):
         """over-rides default class method"""
-        self.mapper.interrupt() #stops ongoing mapper fn.
+        self.mapper.interrupt(True) #stops ongoing mapper fn.
         if self.linkedThread:
             self.linkedThread.quit()
             self.linkedThread.wait()
@@ -504,5 +581,5 @@ class PatienceTestingGUI(QDialog, prbr.Ui_Dialog):
         newWin.linkMapper(self.output)
         thread.started.connect(self.output.generate_output)
         thread.start()
-
+        
         newWin.exec()

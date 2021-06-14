@@ -30,8 +30,11 @@ class InputHandling(object):
         self.listWidget_ICA = listWidget_ICA # NetworkZooGUI.listWidget_ICAComponents
         self.listWidget_ICN = listWidget_ICN # NetworkZooGUI.listWidget_ICNtemplates
         self.listWidget_mapped = listWidget_mapped # NetwokrZooGUI.listWidget_mappedICANetworks
-        
-        
+    
+    def get_item_prop(self, list_name, list_property):
+        """Get item's properties from networkZoo list"""
+        return [item[list_property] for item in self.gd[list_name].values()]
+
         
     def configure_ICs(self):
         """Load anatomical file, ICA comps, ICN & noise templates on startup"""
@@ -43,28 +46,35 @@ class InputHandling(object):
                                         self.config['ica']['template'],
                                         self.config['ica']['search_pattern'],
                                         list_name='ica')
-            self.load_ica_timeseries(ica_files, prompt_fileDialog=False)
+            self.load_ica_timeseries(ica_files=ica_files,
+                                     prompt_fileDialog=False, search_toolbox_output=True)
         if os.path.exists(self.config['icn']['directory']):
             self.find_files(self.config['icn']['directory'], 
                             self.config['icn']['template'], 
                             self.config['icn']['search_pattern'],
                             list_name='icn', 
                             extra_items=self.config['icn']['extra_items'])
+        else:
+            for extra in self.config['icn']['extra_items']:
+                if extra not in self.gd['icn'].keys():
+                    self.update_file_info('icn', None, None, self.listWidget_ICN,
+                                          lookup_key=extra)
         if os.path.exists(self.config['noise']['directory']):
             self.find_files(self.config['noise']['directory'], 
                             self.config['noise']['template'], 
                             self.config['noise']['search_pattern'],
                             list_name='icn', 
                             extra_items=self.config['noise']['extra_items'])
+        else:
+            for extra in self.config['noise']['extra_items']:
+                if extra not in self.gd['icn'].keys():
+                    self.update_file_info('icn', None, None, self.listWidget_ICN,
+                                          lookup_key=extra)
 
 
     def load_noise_templates(self):
         """Load noise templates"""
         
-        for extra in self.config['noise']['extra_items']: #temporarily remove nontemplate slot from list
-                item = self.listWidget_ICN.findItems(extra, Qt.MatchExactly)
-                if len(item) > 0:
-                    self.listWidget_ICN.takeItem(self.listWidget_ICN.row(item[0]))
         os.chdir(self.config['base_directory'])
         self.find_files(self.config['noise']['directory'], 
                         self.config['noise']['template'], 
@@ -76,9 +86,11 @@ class InputHandling(object):
         """Demo ICA run from Smith et al. 2009 (w/o timeseries)"""
         
         ica_files = self.find_files(os.path.dirname(demo_ica_path), 
-                                    self.config['ica']['template'], self.config['ica']['search_pattern'],
+                                    self.config['ica']['template'], 
+                                    self.config['ica']['search_pattern'],
                                     list_name='ica')
-        self.load_ica_timeseries(ica_files, prompt_fileDialog=False)
+        self.load_ica_timeseries(ica_files=ica_files, 
+                                 prompt_fileDialog=False, search_toolbox_output=True)
 
     def load_single_file(self, file_name, file_type='fmri', temporary=False):
         """Load single MRI/fMRI vol & add to appropriate list.
@@ -130,25 +142,28 @@ class InputHandling(object):
         
         if directory:
             if os.path.isfile(directory):
-                all_nifti_files = [directory]
+                found_files = [directory]
             else:
                 ds = nio.DataGrabber(base_directory=directory, template=template, sort_filelist=True)
-                all_nifti_files = ds.run().outputs.outfiles
-                
+                found_files = ds.run().outputs.outfiles
+                                
             self.add_files_to_list(listWidget, list_name, 
-                                   all_nifti_files, None, 
+                                   found_files, None, 
                                    search_pattern, exclude_pattern, extra_items)
-
+            
             # Load replacement IC labels stored in csv file, if applicable
-            if os.path.splitext(all_nifti_files[0])[-1] in ['.img', '.hdr', '.nii']:
-                csv_fname = os.path.splitext(all_nifti_files[0])[0] + '.csv'
-            elif os.path.splitext(all_nifti_files[0])[-1] not in ['.nii.gz']:
-                csv_fname = os.path.splitext(all_nifti_files[0])[0]
-                csv_fname = os.path.splitext(csv_fname)[0] + '.csv'
-            if os.path.isfile(csv_fname):
-                self.load_ic_customNames(csv_fname, list_name)
-                
-            return(all_nifti_files)
+            if search_pattern is not None:
+                r_pattern = re.compile(search_pattern)
+                found_files = [f for f in filter(r_pattern.search, found_files)]
+            if len(found_files) > 0:
+                if os.path.splitext(found_files[0])[-1] in ['.img', '.hdr', '.nii']:
+                    csv_fname = os.path.splitext(found_files[0])[0] + '.csv'
+                elif os.path.splitext(found_files[0])[-1] not in ['.nii.gz']:
+                    csv_fname = os.path.splitext(found_files[0])[0]
+                    csv_fname = os.path.splitext(csv_fname)[0] + '.csv'
+                if os.path.isfile(csv_fname):
+                    self.load_ic_customNames(csv_fname, list_name)
+                return(found_files)
         
     
     def add_files_to_list(self, listWidget, list_name, files_to_add, file_inds=None, 
@@ -161,7 +176,7 @@ class InputHandling(object):
         files_to_add = [f for f in files_to_add if f is not None]
         
         if len(files_to_add) > 1:
-            files_to_add = list(set(files_to_add))  #remove duplicate entires for ICNs stored as 4D nifti files
+            files_to_add = list(set(files_to_add))  #remove duplicate entires for 4D nifti files
             files_to_add.sort()
         if search_pattern is not None:
             r_pattern = re.compile(search_pattern)
@@ -177,175 +192,273 @@ class InputHandling(object):
             if os.path.isfile(file_name):
                 img_vol = image.load_img(file_name)
                 vol_dim = len(img_vol.shape)
-                if vol_dim < 3: #if 2D nifti choosen by mistake...
-                    title = "Error loading Nifti volumes"
-                    message = "2D nifti file or GIFT time series file choosen/entered,"
-                    message += " please select 3D or 4D nifti files"
-                    QtWidgets.QMessageBox.warning(None, title, message)
-                elif file_inds: #index individual vols w/n 4d vol., or 3d vol. indexed by intensities
-                    k_range = [int(k) for k in file_inds[file_name].keys()]
-                elif vol_dim == 3:
+                if vol_dim == 3:
                     k_range = range(1)
-                else:
-                    k_dim = img_vol.shape[3]
-                    k_range = range(k_dim)
-                if vol_dim > 3: # iter_img() preferred over index_img() for repeated img indexing
+                elif vol_dim > 3:
+                    k_range = range(img_vol.shape[3])
+                if file_inds: #index individual vols w/n 4d vol., or 3d vol. indexed by intensities
+                    if file_name in file_inds.keys():
+                        k_range = [int(float(k)) for k in file_inds[file_name].keys()]
+
+                error_message = None
+                if vol_dim < 3: #if 2D nifti choosen by mistake...
+                    img_vol.uncache()
+                    error_message = "2D nifti file or GIFT time series file choosen/entered,"
+                elif vol_dim > 3: 
+                    # iter_img() preferred over index_img() for repeated img indexing
                     for k, img in enumerate(image.iter_img(img_vol)):
                         if k not in k_range: continue
-                            
-                        if file_inds:
-                            lookup_key = file_inds[file_name][str(k)]
-                        else:
-                            lookup_key = file_name
-                            if search_pattern is not None:
-                                match = re.search(r_pattern, lookup_key)
-                                if match: lookup_key = match.groups()[0]
-                            if len(k_range) > 1:
-                                lookup_key = lookup_key + ',%d' %(int(k)+1)
-
-                        item = QtWidgets.QListWidgetItem(lookup_key)
-                        listWidget.addItem(item)
-                        item.setData(Qt.UserRole, lookup_key)
-                        item.setText(lookup_key)
-
-                        self.gd[list_name][lookup_key] = {'img': img, 
-                                                          'filepath': file_name, 
-                                                          'vol_ind' : int(k),
-                                                          '4d_nii': vol_dim > 3,
-                                                          'timeseries': None,
-                                                          'display_name': lookup_key,
-                                                          'lookup_name': lookup_key, 
-                                                          'widget': item}
-                        
-                elif vol_dim ==3: # iter_img() not applicable to non-4D volumes
-                    k, img = 0, img_vol
-                    if file_inds:
-                        lookup_key = file_inds[file_name][str(k)]
-                    else:
-                        lookup_key = file_name
-                        if search_pattern is not None:
-                            match = re.search(r_pattern, lookup_key)
-                            if match: lookup_key = match.groups()[0]
-                        if len(k_range) > 1:
-                            lookup_key = lookup_key + ',%d' %(int(k)+1)
-
-                    item = QtWidgets.QListWidgetItem(lookup_key)
-                    listWidget.addItem(item)
-                    item.setData(Qt.UserRole, lookup_key)
-                    item.setText(lookup_key)
-
-                    self.gd[list_name][lookup_key] = {'img': img,
-                                                      'filepath': file_name, 
-                                                      'vol_ind' : int(k),
-                                                      '4d_nii': vol_dim > 3,
-                                                      'timeseries': None,
-                                                      'display_name': lookup_key,
-                                                      'lookup_name': lookup_key, 
-                                                      'widget': item}
+                        self.update_file_info(list_name, file_name, img, listWidget,
+                                              k=k, k_range=k_range, file_inds=file_inds, 
+                                              vol_dim=vol_dim, r_pattern=r_pattern)
+                elif vol_dim == 3: # iter_img() not applicable to non-4D volumes
+                    self.update_file_info(list_name, file_name, img_vol, listWidget,
+                                          k=0, k_range=k_range, file_inds=file_inds, 
+                                          vol_dim=vol_dim, r_pattern=r_pattern)
                     
                     # if all intensities in img are integers w/ few unique values...
-                    v_unique = np.unique(img.get_fdata())
-                    if (file_inds is None) and ((np.mod(v_unique,1) == 0).all()
-                                                and (3 < len(v_unique) < 1000)):
+                    v_unique = np.unique(img_vol.get_fdata(caching='unchanged'))
+                    if (all(v_unique >= 0) and (2 < len(v_unique) < 1000) and 
+                        (np.mod(v_unique,1) == 0).all()): # if all integers
+                        
                         # ...expand contents of ROI atlas as separate list items
-                        self.expand_ROI_atlas_vol(file_name, list_name=list_name, listWidget=listWidget)
-                        
-                if file_inds: # replace default names, if provided
-                    if k not in k_range: # if 4d vol. indexed by k, last index may not be included...
-                        k = len(file_inds[file_name])-1 #...set k to index last value in file_inds for below
-                    
-                    if (len(file_inds[file_name]) > 1) | ([*file_inds[file_name].values()][k] != lookup_key):
-                        self.replace_ic_customNames(file_inds[file_name], list_name, listWidget)
-                        
+                        self.expand_ROI_atlas_vol(file_name, 
+                                                  list_name=list_name, listWidget=listWidget)
+                else:
+                    error_message = "Could not understand Nifti volume"
+                if error_message:
+                    title = "Error loading Nifti volumes"
+                    error_message += " please select 3D or 4D nifti files"
+                    QtWidgets.QMessageBox.warning(None, title, error_message)
+
+        
         if extra_items:
             for extra in extra_items:
                 if extra not in self.gd[list_name].keys():
-                    item = QtWidgets.QListWidgetItem(extra)
-                    listWidget.addItem(item)
-                    item.setData(Qt.UserRole, extra)
-                    item.setText(extra)
-                    self.gd[list_name][extra] = {'img': None, 
-                                                 'filepath': None, 
-                                                 'vol_ind' : 0,
-                                                 '4d_nii': False,
-                                                 'timeseries': None,
-                                                 'display_name': extra, 
-                                                 'lookup_name': extra,
-                                                 'widget': item}
+                    self.update_file_info(list_name, None, None, listWidget,
+                                          lookup_key=extra)
+                         
+        if file_inds: # replace default names, if provided
+            self.replace_ic_customNames(file_inds, list_name, listWidget)
+                    
         listWidget.clearSelection()  # does not change current item, but paradoxically deselects it
         listWidget.setCurrentRow(-1) # deselect everything
+        
+        
+    def update_file_info(self, list_name, file_name, img, listWidget, 
+                         lookup_key=None, widget_item=None, display_name=None,
+                         k=0, k_range=None, file_inds=None, vol_dim=3, r_pattern=None):
+        """Creates/updates lookup_key for Qt widget & self.gd entry for item info"""
+        
+        lookup_default = lookup_key # check lookup_key before accepting
+        if not lookup_default:
+            if file_inds: # use input dict entry as default key
+                if file_name in file_inds.keys():
+                    if str(k) in file_inds[file_name].keys():
+                        lookup_default = file_inds[file_name][str(k)] 
+            else: # use input file name as default key, after tweaking
+                lookup_default = file_name 
+                if r_pattern is not None:
+                    match = re.search(r_pattern, lookup_default)
+                    if match: lookup_default = match.groups()[0]
+                if k_range:
+                    if len(k_range) > 1:
+                        lookup_default = lookup_default + ',%d' %(int(k)+1)
+                        
+        if lookup_default in self.gd[list_name].keys(): # verify info for default
+            display_name = lookup_default  # default replaced below
+            lookup_key = lookup_default + '_' # add suffix to create unique key, replaced below
+            if ((file_name == self.gd[list_name][lookup_default]['filepath']) and 
+                (int(k) == self.gd[list_name][lookup_default]['vol_ind'])):
+                lookup_key = lookup_default # use existing key w/ verified info
+                widget_item = self.gd[list_name][lookup_key]['widget']
+                display_name = self.gd[list_name][lookup_key]['display_name']
+            else:
+                file_names_list = self.get_item_prop(list_name, 'filepath')
+                if file_name in file_names_list:
+                    for key in self.gd[list_name].keys():
+                        if ((file_name == self.gd[list_name][key]['filepath']) and 
+                            (int(k) == self.gd[list_name][key]['vol_ind'])):
+                            lookup_key = key # use existing key w/ verified info
+                            if self.gd[list_name][key]['4d_nii']: vol_dim = 4
+                            widget_item = self.gd[list_name][key]['widget']
+                            display_name = self.gd[list_name][key]['display_name']
+        else:
+            lookup_key = lookup_default
+            
+        if not display_name:
+            display_name = lookup_key
+        if not widget_item:
+            widget_item = QtWidgets.QListWidgetItem(lookup_key)
+            listWidget.addItem(widget_item)
+            widget_item.setData(Qt.UserRole, lookup_key)
+            widget_item.setText(display_name)
+
+        self.gd[list_name][lookup_key] = {'img': img,
+                                          'filepath': file_name, 
+                                          'vol_ind' : int(k),
+                                          '4d_nii': vol_dim > 3,
+                                          'timeseries': None,
+                                          'ts_filepath': None,
+                                          'display_name': display_name,
+                                          'lookup_name': lookup_key, 
+                                          'widget': widget_item}
+
 
         
     def browse_ica_files(self, state=None):
         """File browser to select & load ICA files"""
         
+        ts_files = []
+        ica_files = None
         if os.path.exists(self.config['ica']['directory']):
             ica_dir = self.config['ica']['directory']
         else:
             ica_dir = self.config['base_directory']
+            self.config['ica']['directory'] = ica_dir
         ica_files = self.browse_files(title='Select ICA Component File(s):', directory=ica_dir,
                                       filter="Image Files (*.nii.gz *.nii *.img)")
         if ica_files: #skip reset if no new ICA files are specified
+            r1 = re.compile("timecourses" + self.config['ica']['search_pattern'])
+            if len([f for f in filter(r1.search, ica_files)]) > 0: # mistaken selection in input         
+                ts_files = [f for f in filter(r1.search, ica_files)]
+                comp_files = [f.replace('timecourses',
+                                       'component') for f in ts_files]
+                ica_files += comp_files 
             if len(ica_files) == 1:
                 ica_dir = os.path.dirname(ica_files[0])
             else:
                 ica_dir = os.path.commonpath(ica_files)
+                
             self.add_files_to_list(self.listWidget_ICA, 'ica', ica_files,
                                    search_pattern=self.config['ica']['search_pattern'],
                                    exclude_pattern='(timecourses|timeseries)')
-            self.load_ica_timeseries(ica_files)
+            
+            if (any([os.path.exists(f) for f in ts_files]) and 
+                not any([os.path.exists(f) for f in comp_files])):
+                    title = "Error loading Nifti volumes"
+                    message = "Nifti time series file or GIFT time courses choosen/entered,"
+                    message += " please select 3D or 4D nifti files"
+                    QtWidgets.QMessageBox.warning(None, title, message)
+                    
+            else:
+                self.load_ica_timeseries(ica_files=ica_files, 
+                                         search_toolbox_output=True, 
+                                         prompt_fileDialog=True)
             
 
-    def load_ica_timeseries(self, ica_files, k=None, lookup_key=None, prompt_fileDialog=True):
+    def load_ica_timeseries(self, ica_files=None, 
+                            prompt_fileDialog=True, search_toolbox_output=True):
         """Load ICA timeseries"""
         
+        if (ica_files is not None) and (len(self.gd['ica'].keys()) == 0):
+            title = "Error loading IC time series"
+            message = "ICA components not loaded."
+            message += "\nSelect files with 'Load ICA Components'"
+            message += " button or menu item"
+            QtWidgets.QMessageBox.warning(None, title, message)
+            return
+        
+        if not ica_files: ica_files = []
+        ts_files = []
         ica_ts = None
-        r = re.compile("(timecourses|timeseries)" + self.config['ica']['search_pattern'])
-        if len([f for f in filter(r.search, ica_files)]) is 1: #first, try to find time courses in ica filelist...
-            ts_file = [f for f in filter(r.search, ica_files)]  
-        elif len([f for f in filter(r.search, [ica_files[0].replace('mean_component', 'mean_timecourses')])]) is 1:
-            ts_file = [f for f in filter(r.search, [ica_files[0].replace('mean_component', 'mean_timecourses')])]
+        if 'ica_dir' not in locals():
+            if len(ica_files) > 0:
+                ica_dir = os.path.commonpath(ica_files)
+            else:
+                ica_dir = self.config['ica']['directory']
+        
+        if isinstance(ica_files, dict):
+            # input format:   {'spatial map filepath' : 'time series filepath'} 
+            ica_dict = ica_files
+            ica_files = [f for f in ica_dict.keys() if os.path.exists(f)]
+            ts_files = [f for f in ica_dict.values() if os.path.exists(f)]
+            search_toolbox_output = False
+            prompt_fileDialog = False
+            
+        elif search_toolbox_output:  
+            # search for ~GIFT toolbox filenaming defaults
+            r1 = re.compile("timecourses" + self.config['ica']['search_pattern'])
+            r2 = re.compile('component' + self.config['ica']['search_pattern'])
+            if len([f for f in filter(r1.search, ica_files)]) > 0: # if time courses in input
+                ts_files = [f for f in filter(r1.search, ica_files)]
+                ica_files = [f.replace('timecourses',
+                                       'component') for f in ts_files]
+                ica_files = [f for f in ica_files if os.path.exists(f)]
+            elif len([f for f in filter(r2.search, ica_files)]) > 0: # if component sources in input
+                ica_files = [f for f in filter(r2.search, ica_files)]
+                ts_files = [f.replace('component',
+                                      'timecourses') for f in ica_files]
+                ts_files = [f for f in ts_files if os.path.exists(f)]
+            
         else:
-            ts_file = []
-            if prompt_fileDialog:
-                if QtWidgets.QMessageBox.question(None, '', "Are ICA time courses saved in a separate file?",
-                                                  QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                                                  QtWidgets.QMessageBox.Yes) == QtWidgets.QMessageBox.Yes:
-                    if 'ica_dir' not in locals():
-                        ica_dir = os.path.commonpath(ica_files)
-                    ts_file = self.browse_files(title='Select ICA time series file:',
-                                                directory=ica_dir, 
-                                                filter='Time series saved as (*.nii.gz *.nii *.img)')
-        if len(ts_file) == 0:
-            ts_file = None
-        if ts_file is not None:
-            ts_file = ts_file[0]
-            if not os.path.isfile(ts_file):  # try to find ts file in ica_dir...
-                ds = nio.DataGrabber(base_directory=ica_dir, 
-                                     template=self.config['ica']['template'], sort_filelist=True)
-                all_nifti_files = ds.run().outputs.outfiles
-                r = re.compile("(timecourses|timeseries)" + self.config['ica']['search_pattern'])
-                filtered_files = [f for f in filter(r.search, all_nifti_files)]
-                #    separate out ICA time series if input from spatial maps:
-                ts_file = [f for f in filtered_files if 'time' in f]
-                if os.path.isfile(ts_file[0]):
-                    ica_ts = image.load_img(ts_file[0]).get_fdata()
-            else:
-                ica_ts = image.load_img(ts_file).get_fdata()
+            # ordered list of filepaths to both
+            r = re.compile("(time)" + self.config['ica']['search_pattern'])
+            ts_files = [f for f in filter(r.search, ica_files)]
+            ica_files = [f for f in ica_files if f not in ts_files]
+            if len(ts_files) != len(ica_files):
+                ts_files = [] # trigger dialogue input below
                 
-        if k and lookup_key in self.gd['ica'].keys(): #specify index by k & ica lookup key
-            if ica_ts is not None:
-                self.gd['ica'][lookup_key]['timeseries'] = ica_ts[:,k]
+        if len(ts_files) == 0 and prompt_fileDialog:
+            ica_lookups = self.gd['ica'].keys()
+            ica_ts_none = [key for key in ica_lookups
+                           if ((self.gd['ica'][key]['timeseries'] is None) and
+                               (self.gd['ica'][key]['filepath'] is not None))]
+            if len(ica_ts_none) > 0:
+                ts_files = self.browse_files(title='Select ICA time series file:',
+                                            directory=ica_dir, 
+                                            filter='Time series saved as (*.nii.gz *.nii *.img)')
+                
+        if (len(ica_files) == 0) and prompt_fileDialog:
+            ica_lookups = self.gd['ica'].keys()
+            for key in ica_lookups:
+                ica_files.append(self.gd['ica'][key]['filepath'])
+            ica_files = list(set(ica_files))
+            if len(ica_files) != len(ts_files):
+                ica_title ='Select associated ICA component file:'
+                ica_files = self.browse_files(title=ica_title,
+                                directory=ica_dir, 
+                                filter="Image Files (*.nii.gz *.nii *.img)")
+                
+        if all([ts==ic for ts,ic in zip(ts_files,ica_files)]):
+            if prompt_fileDialog:
+                title = "Error loading IC components & time series"
+                message = "ICA component & time series files are identical:\n"
+                for file in ts_files:
+                    message += '\n   ' + os.path.basename(file)
+                for file in ica_files:
+                    message += '\n   ' + os.path.basename(file)
+                QtWidgets.QMessageBox.warning(None, title, message)
+            return # not able to associate ICA comp. files w/ ICA t.s. files
+            
+        ts_files = [f for f in ts_files if os.path.exists(f)]
+        ica_files = [f for f in ica_files if os.path.exists(f)]
+        if (len(ts_files) == 0) or (len(ica_files) == 0):
+            if prompt_fileDialog:
+                print('NOTE: could not find associated ICA timeseries')
+            return
+        elif len(ts_files) != len(ica_files):
+            if prompt_fileDialog:
+                print('ERROR: mismatch between ICA time series vs. spatial maps files')
+            return
+        else:
+            ica_dict = dict(zip(ica_files, ts_files))
+        
+        # load time series & find which file is associated with which self.gd['ica'] key
+        for ica_file, ts_file in ica_dict.items():
+            ica_ts = image.load_img(ts_file)
+            vol_dim = len(ica_ts.shape)
+            if vol_dim != 2: # expect [time x ICs] vol.
+                next # skip if 3D/4D nifti vol. loaded by mistake
             else:
-                self.gd['ica'][lookup_key]['timeseries'] = None
-        else:  # find which file is associated with which self.gd['ica'] key
-            for file in ica_files:
                 for lookup_key in self.gd['ica'].keys():
-                    if file == self.gd['ica'][lookup_key]['filepath']:
-                        k = re.findall(r'\d+$', lookup_key) #get last digit in IC comp. name
-                        k = int(k[0]) if len(k) > 0 else None
-                        if ica_ts is not None and k is not None:
-                            self.gd['ica'][lookup_key]['timeseries'] = ica_ts[:,k-1]
+                    if ica_file == self.gd['ica'][lookup_key]['filepath']:
+                        k = self.gd['ica'][lookup_key]['vol_ind']
+                        if (ica_ts is not None) and (k is not None):
+                            self.gd['ica'][lookup_key]['timeseries'] = ica_ts.dataobj[:,k]
+                            self.gd['ica'][lookup_key]['ts_filepath'] = ts_file
+            ica_ts.uncache()
+            
                     
                                                     
     def browse_icn_files(self, state=None):
@@ -390,7 +503,7 @@ class InputHandling(object):
                 fname = None
         else:
             f_caption = "Select saved table with IC names"
-            f_caption = f_caption + "\n(filenames in 1st column, new names in 2nd):"
+            f_caption += "\n(filenames in 1st column, new names in 2nd):"
             f_dir = '.'
             f_filter = "csv (*.csv);;Text files (*.txt)"
             fname, _ = QtWidgets.QFileDialog.getOpenFileName(self, f_caption, f_dir, f_filter)
@@ -412,7 +525,7 @@ class InputHandling(object):
                                    'Noise Classification']
             names_file0 = names_file[0]
             names_file0 = [colname.replace(':','') for colname in names_file0]
-            if any(colname in likely_header_names for colname in names_file0):
+            if any([colname in likely_header_names for colname in names_file0]):
                 header, content = names_file[0], names_file[1:]
             else:
                 content = names_file
@@ -421,7 +534,6 @@ class InputHandling(object):
             ic_dict = {}
             for ic in range(len(content)):
                 ic_dict.update({content[ic][0] : content[ic][1]})
-                
             fail_flag = self.replace_ic_customNames(ic_dict, list_name)
             
             if fail_flag:
@@ -445,26 +557,107 @@ class InputHandling(object):
                 listWidget = self.listWidget_ICA
             else:
                 return True
-            
-        for old_name, new_name in ic_dict.items():
-            old_item = listWidget.findItems(old_name, Qt.MatchExactly)
-            if (old_item is None) or (len(old_item) == 0):
-                fail_flag = True
+        
+        lookup_names_list = self.get_item_prop(list_name, 'lookup_name')
+        file_names_list = self.get_item_prop(list_name, 'filepath')
+        vol_inds_list = self.get_item_prop(list_name, 'vol_ind')
+        vol_inds_list = [str(ind) for ind in vol_inds_list]
+        
+        keys1_lookups, keys1_files, keys1_inds = False, False, False
+        test_keys1_lookups = []        
+        test_keys1_files = []
+        test_keys1_inds = []
+        ic_dict_keys1 = [*ic_dict]
+        for key in ic_dict_keys1:
+            test_keys1_lookups.append(key in lookup_names_list)
+            test_keys1_files.append(key in file_names_list)
+            test_keys1_inds.append(key in vol_inds_list)
+        if any(test_keys1_lookups): keys1_lookups = True
+        if any(test_keys1_files): keys1_files = True
+        if any(test_keys1_inds): keys1_inds = True
+        for k,key in enumerate(ic_dict_keys1):
+            if not any([test_keys1_lookups[k], test_keys1_files[k], test_keys1_inds[k]]):
+                ic_dict_keys1.remove(key)
+                ic_dict.pop(key, None) #None avoids error if key not in dict
+                        
+        keys2_lookups, keys2_files, keys2_inds = False, False, False
+        if isinstance(ic_dict[ic_dict_keys1[0]], dict):
+            for key1 in ic_dict_keys1:
+                test_keys2_lookups = []
+                test_keys2_files = []
+                test_keys2_inds = []
+                ic_dict_keys2 = [*ic_dict[key1]]
+                for key2 in ic_dict_keys2:
+                    test_keys2_lookups.append(key2 in lookup_names_list)
+                    test_keys2_files.append(key2 in file_names_list)
+                    test_keys2_inds.append(key2 in vol_inds_list)
+                if any(test_keys2_lookups): keys2_lookups = True
+                if any(test_keys2_files): keys2_files = True
+                if any(test_keys2_inds): keys2_inds = True
+                for k,key2 in enumerate(ic_dict_keys2):
+                    if not any([test_keys2_lookups[k], test_keys2_files[k], test_keys2_inds[k]]):
+                        ic_dict_keys2.remove(key2)
+                if len(ic_dict_keys2) == 0:
+                    ic_dict_keys1.remove(key1)
+                    ic_dict.pop(key1, None) #None avoids error if key not in dict
+                    
+        ic_dict_replace = {}
+        K = len(lookup_names_list)
+        for key1,replacement1 in ic_dict.items():
+            k1, old_name, new_name = [], None, None
+            if isinstance(replacement1, str):
+                new_name = replacement1
+            if keys1_lookups and (key1 in lookup_names_list):
+                k1 = [k for k in range(K) if (key1 == lookup_names_list[k])]
+            elif keys1_files and (key1 in file_names_list):
+                k1 = [k for k in range(K) if (key1 == file_names_list[k])]
+            elif keys1_inds and (key1 in vol_inds_list):
+                k1 = [k for k in range(K) if (key1 == vol_inds_list[k])]
+            if len(k1) == 1:
+                old_name = lookup_names_list[k1[0]]
+            if old_name and new_name and (old_name != new_name):
+                ic_dict_replace.update({old_name : new_name})
             else:
-                if len(listWidget.findItems(new_name, Qt.MatchExactly)) > 0:
-                    #  replace templates w/ duplicate names
-                    outdated_item = listWidget.findItems(new_name, Qt.MatchExactly)
-                    listWidget.takeItem(listWidget.row(outdated_item[0]))
-                listWidget.takeItem(listWidget.row(old_item[0]))
-                new_item = QtWidgets.QListWidgetItem(new_name)
-                listWidget.addItem(new_item)
-                new_item.setData(Qt.UserRole, new_name)
-                new_item.setText(new_name)
-                self.gd[list_name][new_name] = self.gd[list_name].pop(old_name)
-                self.gd[list_name][new_name]['display_name'] = new_name
-                self.gd[list_name][new_name]['lookup_name'] = new_name
-                self.gd[list_name][new_name]['widget'] = new_item
-                
+                if not any([keys2_lookups, keys2_files, keys2_inds]):
+                    fail_flag = True
+                    next
+                for key2,replacement2 in ic_dict[key1].items():
+                    k2, old_name, new_name = [], None, None
+                    if isinstance(replacement2, str):
+                        new_name = replacement2
+                    if keys2_lookups and (key2 in lookup_names_list):
+                        k2 = [k for k in range(K) if (key2 == lookup_names_list[k])]
+                    elif keys2_files and (key2 in file_names_list):
+                        k2 = [k for k in range(K) if (key2 == file_names_list[k])]
+                    elif keys2_inds and (key2 in vol_inds_list):
+                        k2 = [k for k in range(K) if (key2 == vol_inds_list[k])]
+                    if len(set(k1) & set(k2)) == 1:
+                        old_name = lookup_names_list[list(set(k1) & set(k2))[0]]
+                    if old_name and new_name and (old_name != new_name):
+                        ic_dict_replace.update({old_name : new_name})
+                    else:
+                        fail_flag = True
+                        
+        for old_name, new_name in ic_dict_replace.items():
+            if old_name and new_name and (old_name != new_name):
+                old_item = listWidget.findItems(old_name, Qt.MatchExactly)
+                if (old_item is None) or (len(old_item) == 0):
+                    fail_flag = True
+                else:
+                    if len(listWidget.findItems(new_name, Qt.MatchExactly)) > 0:
+                        #  replace templates w/ duplicate names
+                        outdated_item = listWidget.findItems(new_name, Qt.MatchExactly)
+                        listWidget.takeItem(listWidget.row(outdated_item[0]))
+                    listWidget.takeItem(listWidget.row(old_item[0]))
+                    new_item = QtWidgets.QListWidgetItem(new_name)
+                    listWidget.addItem(new_item)
+                    new_item.setData(Qt.UserRole, new_name)
+                    new_item.setText(new_name)
+                    self.gd[list_name][new_name] = self.gd[list_name].pop(old_name)
+                    self.gd[list_name][new_name]['display_name'] = new_name
+                    self.gd[list_name][new_name]['lookup_name'] = new_name
+                    self.gd[list_name][new_name]['widget'] = new_item
+        
         return fail_flag
         
     
@@ -505,15 +698,16 @@ class InputHandling(object):
             outdated_img = self.gd[list_name][outdated_lookup]['img']
             vol_filename = self.gd[list_name][outdated_lookup]['filepath']
             vol_dim = len(outdated_img.shape)
-            roi_array = outdated_img.get_fdata()
+            roi_array = outdated_img.get_fdata(caching='unchanged')
             roi_inds = np.unique(roi_array).tolist()
             if 0 in roi_inds: roi_inds.remove(0)
             listWidget.takeItem(listWidget.row(outdated_item))
             self.gd[list_name].pop(outdated_lookup)
+            
             for ind in roi_inds:                    
                 roi_img = image.new_img_like(outdated_img, roi_array==ind, copy_header=True)
-                roi_lookup = outdated_lookup + ',' + str(int(ind))
-                if str(int(ind)) in roi_dict.keys():
+                roi_lookup = outdated_lookup + ',' + str(int(float(ind)))
+                if str(int(float(ind))) in roi_dict.keys():
                     roi_label = roi_dict.pop(str(ind))
                 else:
                     roi_label = roi_lookup
@@ -527,6 +721,7 @@ class InputHandling(object):
                                                   'vol_ind' : ind,
                                                   '4d_nii': vol_dim > 3,
                                                   'timeseries': None,
+                                                  'ts_filepath': None,
                                                   'lookup_name': roi_lookup,
                                                   'display_name': roi_lookup,
                                                   'widget': item}
@@ -540,15 +735,14 @@ class InputHandling(object):
         ica_files = [self.gd['ica'][lookup_key]['filepath'] for lookup_key in self.gd['ica'].keys()]
         ica_files = list(set(ica_files))
         ica_files = [f for f in ica_files if f is not None]
+        ts_files = [self.gd['ica'][lookup_key]['ts_filepath'] for lookup_key in self.gd['ica'].keys()]
+        ica_ts_files = dict(zip(ica_files, ts_files))
         ica_IndstoNames = {}
         for file in ica_files: #create key for each unique file
             ica_IndstoNames[file] = {}
         for lookup_key in self.gd['ica'].keys():
             file = self.gd['ica'][lookup_key]['filepath']
             ica_IndstoNames[file].update([(self.gd['ica'][lookup_key]['vol_ind'], lookup_key)])
-            ica_ts = {lookup_key : self.gd['ica'][lookup_key]['timeseries'].tolist()
-                      for lookup_key in self.gd['ica'].keys()}
-
         icn_files = [self.gd['icn'][lookup_key]['filepath'] for lookup_key in self.gd['icn'].keys()]
         icn_files = list(set(icn_files))
         icn_files = [f for f in icn_files if f is not None]
@@ -569,8 +763,8 @@ class InputHandling(object):
         analysisInfo = {'info' : 'Saved analysis file, created by Network Zoo',
                         'config' : config, 
                         'ica_files' : ica_files, 
+                        'ica_ts_files' : ica_ts_files,
                         'ica_IndstoNames' : ica_IndstoNames, 
-                        'ica_ts' : ica_ts, 
                         'icn_files' : icn_files,
                         'icn_IndstoNames' : icn_IndstoNames, 
                         'corrs' : corrs, 
@@ -596,7 +790,7 @@ class InputHandling(object):
         elif analysisInfo['info']  != 'Saved analysis file, created by Network Zoo':
             load_analysis_error = True
             message = "Selected file does not appear to contain saved Network Zoo analysis"
-        elif not set(['config','ica_files','ica_IndstoNames','ica_ts',
+        elif not set(['config','ica_files','ica_IndstoNames', 'ica_ts_files',
                       'icn_files','icn_IndstoNames','corrs','ica_icn_mapped',
                       'ica_mapped_customNames','icn_mapped_customNames']) <= set(analysisInfo.keys()):
             load_analysis_error = True
@@ -608,12 +802,12 @@ class InputHandling(object):
         else:
             config                 = analysisInfo['config'] # software defaults & configuration info
             ica_files              = analysisInfo['ica_files'] # ICA file paths
-            ica_IndstoNames        = analysisInfo['ica_IndstoNames'] # 4d nii indices for above ICA files
-            ica_ts                 = analysisInfo['ica_ts'] # array of IC time series
+            ica_IndstoNames        = analysisInfo['ica_IndstoNames'] # 4d nii indices for above files
+            ica_ts_files           = analysisInfo['ica_ts_files']  # file paths to time series
             icn_files              = analysisInfo['icn_files'] # ICN template file paths
-            icn_IndstoNames        = analysisInfo['icn_IndstoNames'] # 4d nii indices for above ICN files
-            corrs                  = analysisInfo['corrs'] # dict of correlations, between ICA & ICN templates
-            ica_icn_mapped         = analysisInfo['ica_icn_mapped'] # dict of ICA to ICN mappings (by files)
+            icn_IndstoNames        = analysisInfo['icn_IndstoNames'] # 4d nii indices for above files
+            corrs                  = analysisInfo['corrs'] # dict of correlations, indexed as IC : ICN
+            ica_icn_mapped         = analysisInfo['ica_icn_mapped'] # dict of ICA > ICN mappings
             ica_mapped_customNames = analysisInfo['ica_mapped_customNames'] # custom ICA names for above
             icn_mapped_customNames = analysisInfo['icn_mapped_customNames'] # custom ICN names for above
             
@@ -650,19 +844,20 @@ class InputHandling(object):
                 else:
                     message += "\n\nExcluding above & attempting to load existing files..."
                     QtWidgets.QMessageBox.warning(None, title, message)
-            
-            # Load data into GUI variables
+                    
             self.config = InputHandling.config_check_defaults(config)
-            
             self.add_files_to_list(self.listWidget_ICA, 'ica', 
                                    ica_files, file_inds=ica_IndstoNames,
                                    search_pattern=self.config['ica']['search_pattern'], 
                                    append=False)
-            for lookup_key,ts in ica_ts.items():
-                if lookup_key in self.gd['ica'].keys():
-                    self.gd['ica'][lookup_key]['timeseries'] = np.array(ts)
             
-            extra_template_items = self.config['icn']['extra_items'] + self.config['noise']['extra_items']
+            if ica_ts_files is not None:
+                self.load_ica_timeseries(ica_files=ica_ts_files, 
+                                         prompt_fileDialog=False, 
+                                         search_toolbox_output=False)
+            
+            extra_template_items = self.config['icn']['extra_items'].copy()
+            extra_template_items += self.config['noise']['extra_items'].copy()
             self.add_files_to_list(self.listWidget_ICN, 'icn', 
                                    icn_files, file_inds=icn_IndstoNames,
                                    search_pattern=self.config['icn']['search_pattern'],
@@ -675,8 +870,8 @@ class InputHandling(object):
                 self.add_saved_Classification(ica_icn_pair=(ica_lookup, icn_lookup),
                                               ica_custom_name=ica_mapped_customNames[ica_lookup],
                                               icn_custom_name=icn_mapped_customNames[ica_lookup])
-            
                 
+            
     def add_saved_Classification(self, ica_icn_pair=None, ica_custom_name=None, 
                                  icn_custom_name=None, updateGUI=True):
         """Add ICA > ICN mapping to Qt list, customized for 'load_analysis_json()'"""
@@ -753,15 +948,19 @@ class InputHandling(object):
         
         if config_backup is None:
             if mypath is None:
-                mypath = os.getcwd()
+                if ('__file__' in locals()) or ('__file__' in globals()):
+                    mypath = os.path.dirname(os.path.abspath(__file__)) 
+                else:
+                    mypath = os.getcwd()
             backup_default = opj(mypath, 'config_settings', 'config_settings_backup.py')
             if os.path.isfile(backup_default):
                 # load default backup configuration settings, saved as .py file
                 from config_settings_backup import default_configuration as config_backup
             else:
-                message = "Found faulty configuration file:  '" + fname + "''"
-                message = "\nAdditionally, could not find default configuration background settings file: ''"
-                message += backup_default
+                message = "Found faulty configuration file:  '" + fname + "'"
+                message += "\nAdditionally, could not find default "
+                message += "configuration background settings file: "
+                message += "'" + backup_default + "'"
                 message += "\n\nIf problems persist, recommend re-installing program"
                 QtWidgets.QMessageBox.warning(None, title, message)
         config = config_backup
@@ -781,32 +980,41 @@ class InputHandling(object):
         
         if mypath is None:
             if 'base_directory' in configData.keys():
-                mypath = configData['base_directory']
+                if configData['base_directory']:
+                    if os.path.isdir(configData['base_directory']):
+                        mypath = configData['base_directory']
+        if mypath is None:
+            if ('__file__' in locals()) or ('__file__' in globals()):
+                mypath = os.path.dirname(os.path.abspath(__file__)) 
             else:
                 mypath = os.getcwd()
+                
         if config_backup is None:
             backup_default = opj(mypath, 'config_settings', 'config_settings_backup.py')
             if os.path.isfile(backup_default):
                 # default backup configuration settings
                 from config_settings_backup import default_configuration as config_backup
             else:
-                message = "WARNING: could not find default configuration background settings file: ''"
-                message += backup_default
-                message += "'', display options & editing preferrence may be buggy!"
+                message = "WARNING: could not find default configuration background settings file: "
+                message += "'" + backup_default + "', "
+                message += "display options & editing preferrence may be buggy!"
                 print(message)
 
         # Check for defaults
         if 'base_directory' not in configData.keys(): 
             configData['base_directory'] = mypath
+        elif configData['base_directory'] is None:
+            configData['base_directory'] = mypath
+        elif not os.path.isdir(configData['base_directory']):
+            configData['base_directory'] = mypath
         if 'output_directory' not in configData.keys():
-            configData['output_directory'] = mypath
-        elif os.path.exists(opj(mypath, configData['output_directory'])):
-            configData['output_directory'] = opj(mypath, configData['output_directory'])
-        elif os.path.exists(configData['output_directory']):
-            configData['output_directory'] = configData['output_directory']
-        else: configData['output_directory'] = mypath
+            configData['output_directory'] = configData['base_directory']
+        else:
+            configData['output_directory'] = opj(configData['base_directory'], 
+                                                 configData['output_directory'])
         if 'corr_onClick' not in configData.keys(): configData['corr_onClick'] = True
         if 'saved_analysis' not in configData.keys(): configData['saved_analysis'] = False
+        if 'saved_analysis_path' not in configData.keys(): configData['saved_analysis_path'] = ""
         if 'output_created' not in configData.keys(): configData['output_created'] = False
 
         # Load display settings
@@ -825,11 +1033,26 @@ class InputHandling(object):
             message += " Defaulting to backup settings"
             QtWidgets.QMessageBox.warning(None, title, message)
 
-        # Load paths to MRI volumes
+        # Prepend script dir. to paths
+        script_path = configData['base_directory']
+        
+        if os.path.exists(opj(script_path, configData['ica']['directory'])):
+            configData['ica']['directory'] = opj(script_path, configData['ica']['directory'])
+        if os.path.isfile(configData['ica']['directory']):
+            configData['ica']['directory'] = os.path.dirname(configData['ica']['directory'])
+            
+        if os.path.exists(opj(script_path, configData['icn']['directory'])):
+            configData['icn']['directory'] = opj(script_path, configData['icn']['directory'])
         if os.path.isfile(configData['icn']['directory']):
-            configData['icn']['directory'] = os.path.dirname(configData['icn']['directory'])     
-        if os.path.isfile(opj(mypath, configData['smri_file'])):
-            configData['smri_file'] = opj(mypath, configData['smri_file'])
+            configData['icn']['directory'] = os.path.dirname(configData['icn']['directory'])
+            
+        if os.path.exists(opj(script_path, configData['noise']['directory'])):
+            configData['noise']['directory'] = opj(script_path, configData['noise']['directory'])
+        if os.path.isfile(configData['noise']['directory']):
+            configData['noise']['directory'] = os.path.dirname(configData['noise']['directory'])
+            
+        if os.path.isfile(opj(script_path, configData['smri_file'])):
+            configData['smri_file'] = opj(script_path, configData['smri_file'])
         
         return configData
 

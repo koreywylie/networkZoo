@@ -5,6 +5,7 @@
 
 default_configuration = { "output_directory": "saved_output",
                           "saved_analysis": False,
+                          "saved_analysis_path": "",
                           "output_created": False,
                           "corr_onClick": True,
                           "ica":{

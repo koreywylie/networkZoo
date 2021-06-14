@@ -7,8 +7,8 @@ Brief summary & referrences for anatomical volume files:
 -MNI152_2009_template-withSkull.nii.gz:
 	-as above, includes skull
 
-
--refs.: J.C. Mazziotta, A.W. Toga, A.C. Evans, P. Fox, J. Lancaster
+ 
+J.C. Mazziotta, A.W. Toga, A.C. Evans, P. Fox, J. Lancaster
 A probabilistic atlas of the human brain: theory and rationale for its development
 NeuroImage, 2 (1995), pp. 89-101
 

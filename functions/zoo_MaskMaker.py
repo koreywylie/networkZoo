@@ -81,7 +81,10 @@ class MaskMaker(object):
         mask_names = []
 
         # lambda fn. below separates string w/ '>' then casts last part into digit if needed
-        for mapping_lookup in sorted(self.gd['mapped'].keys(), key=lambda item: (int(item.partition('>')[-1]) if item[-1].isdigit() else float('inf'))):
+        for mapping_lookup in sorted(self.gd['mapped'].keys(), 
+                                     key=lambda item: (int(item.partition('>')[-1]) if
+                                                       item.partition('>')[-1].isdigit() else
+                                                       float('inf'))):
             ica_lookup = self.gd['mapped'][mapping_lookup]['ica_lookup']
             icn_name = self.gd['mapped'][mapping_lookup]['icn_custom_name']
             if re.match('\\.*noise', icn_name, flags=re.IGNORECASE):
@@ -90,7 +93,7 @@ class MaskMaker(object):
                 mask_noise.append('ICN')
 
             ica_img = image.copy_img(self.gd['ica'][ica_lookup]['img'])
-            ica_dat = ica_img.get_fdata()
+            ica_dat = ica_img.get_fdata(caching='unchanged')
             ica_dat[np.isnan(ica_dat)] = 0
             if self.mask_specs['thresh_percentile']:
                 threshold = np.percentile(ica_dat, self.mask_specs['cutoff_percentile'])
@@ -117,6 +120,11 @@ class MaskMaker(object):
         with open(csv_fname, 'w') as f:
             writer = csv.writer(f)
             writer.writerow(('ICA component:', 'ICN Label:', 'Noise Classification:'))
-            for ic in sorted(icn_info.keys(), key=lambda item: (int(item.partition(',')[-1]) if item[-1].isdigit() else float('inf'))): #lambda separates string w/ ',' then casts last part into digit if needed
+            
+            #lambda separates string w/ ',' then casts last part into digit if needed
+            for ic in sorted(icn_info.keys(), 
+                             key=lambda item: (int(item.partition(',')[-1]) if 
+                                               item[-1].isdigit() else 
+                                               float('inf'))):
                 writer.writerow((ic, icn_info[ic][0], icn_info[ic][1]))
 

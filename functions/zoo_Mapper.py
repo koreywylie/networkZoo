@@ -33,7 +33,7 @@ class Mapper(QObject):
     def __init__(self,
                  in_files=None, in_filenames=None,
                  map_files=None, map_filenames=None, 
-                 bin_inFiles=False, bin_mapFiles=True,
+                 bin_inFiles=False, bin_mapFiles=False,
                  waitBar=False, corrs=None):
         super().__init__()
         
@@ -43,6 +43,14 @@ class Mapper(QObject):
         
         # thresh to create binary templates
         self.bin_mapFiles, self.bin_inFiles = bin_mapFiles, bin_inFiles
+        
+        # list of images
+        self.in_imgs = []
+        self.map_imgs = []
+        
+        # vol. for downsizing
+        self.reference_img = None
+
         
         # set-up queque for self.run_one() inputs
         self.queue_in_img_names = []
@@ -61,7 +69,11 @@ class Mapper(QObject):
         
         # load data & finalities
         self._load_files()
-        self.set_ref_vol() #find smaller vol., used to downsample larger vol.
+        
+        #find smaller vol., used to downsample larger vol.
+        if (len(self.in_imgs) > 0) and (len(self.map_imgs) > 0):
+            self.set_ref_vol(img=self.in_imgs[0], 
+                             map_img=self.map_imgs[0])
         
         
     # fns. to access signals from another class
@@ -82,8 +94,7 @@ class Mapper(QObject):
         
 
     def _load_files(self):
-        self.in_imgs = []
-        self.map_imgs = []
+        """Initializes fn. by loading all images"""
         if self.in_files:
             self.in_imgs = [i if isinstance(i, (Nifti1Image, Nifti1Pair)) else image.load_img(i)
                             for i in self.in_files]
@@ -94,8 +105,10 @@ class Mapper(QObject):
     def set_ref_vol(self, img=None, map_img=None):
         """Find smaller of 'in_files' or 'map_files' in terms of volume dimensions"""
         
-        self.reference_img = None
-        if (img is None) and (map_img is None):  return
+        if (img is None) and (map_img is None): return
+        if isinstance(img, list): img = img[0]
+        if isinstance(map_img, list): map_img = map_img[0]
+        
         if not isinstance(img, (Nifti1Image, Nifti1Pair)):
             if hasattr(self, 'in_imgs'):
                 if isinstance(self.in_imgs[0], (Nifti1Image, Nifti1Pair)):
@@ -108,11 +121,12 @@ class Mapper(QObject):
                     map_img = self.map_imgs[0]
                 else:
                     map_img = image.load_img(self.map_imgs[0])
+                    
         if img and map_img:
-            if img.shape[0:3] < map_img.shape[0:3]:
-                self.reference_img = img
-            elif img.shape[0:3] > map_img.shape[0:3]:
+            if img.shape[0:3] > map_img.shape[0:3]:
                 self.reference_img = map_img
+            else:
+                self.reference_img = img
                 
             
     def run(self):
@@ -128,7 +142,8 @@ class Mapper(QObject):
         self.update_corrs(new_corrs)
                 
         return new_corrs
-
+    
+    
     def run_one(self, in_imgs=None, in_img_names=None, map_imgs=None, map_names=None):
         """Run single/few corrs., selected by name if specified"""
         
@@ -224,7 +239,7 @@ class Mapper(QObject):
         
         if not old_corrs: old_corrs = {}
         new_corrs = {}
-        if self.waitBar: ij = 0
+        ij = 0
         imgs = imgs if hasattr(imgs, '__iter__') else [imgs]  # make iterable
         map_imgs = map_imgs if hasattr(map_imgs, '__iter__') else [map_imgs]  # make iterable
         for i, img in enumerate(imgs):
@@ -245,8 +260,7 @@ class Mapper(QObject):
             if bin_imgs:         #binarize w/o scaling or thresholding
                 img_arr = Mapper.prep_tmap(img, reference=ref_img, binary=True)
             else:                #treats imgs as array of real numbers, threshold & scale appropriately
-                img_arr = Mapper.prep_tmap(img, reference=ref_img, 
-                                           scale=True, quantile=75, threshold=1, binary=False)
+                img_arr = Mapper.prep_tmap(img, reference=ref_img)
             
             for ii, mimg in enumerate(map_imgs):
                 if self.stopMapper:  # called from outside fn., interrupts for loop
@@ -263,17 +277,17 @@ class Mapper(QObject):
                     self.templ_changed.emit(map_names[ii])
                     ij += 1
                     self.ij_changed.emit(ij)
-                if bin_maps:     #treats mimgs as binary ICNs templates, binarize w/o scaling or thresholding
+                if bin_maps: #treats mimgs as binary ICNs templates, binarize w/o scaling or thresholding
                     mimg_arr = Mapper.prep_tmap(mimg, reference=ref_img, binary=True)
-                else:            #treats mimgs as array of real numbers, threshold & scale appropriately
-                    mimg_arr = Mapper.prep_tmap(mimg, reference=ref_img, 
-                                                scale=True, quantile=75, threshold=1, binary=False)
+                else:        #treats mimgs as array of real numbers, threshold & scale appropriately
+                    mimg_arr = Mapper.prep_tmap(mimg, reference=ref_img)
                 new_corrs[img_names[i]][map_names[ii]] = np.corrcoef(mimg_arr, img_arr)[0,1]    
         return new_corrs
     
     
     @staticmethod
-    def prep_tmap(img, reference=None, center=False, scale=False, threshold=0.2, quantile=None, binary=True):
+    def prep_tmap(img, reference=None, center=False, scale=False, 
+                  threshold=None, quantile=None, binary=False):
         """Quick transforms to speed corr. calc. for spatial maps"""
         
         if isinstance(img, (Nifti1Image, Nifti1Pair)):
@@ -283,9 +297,10 @@ class Mapper(QObject):
         else:
             image.load_img(img)
         if isinstance(reference, (str, (Nifti1Image, Nifti1Pair))):
-            dat = image.resample_to_img(source_img=img, target_img=reference).get_data().flatten()
-        else:
-            dat = img.get_data().flatten()
+            if img.shape != reference.shape:
+                img = image.resample_to_img(source_img=img, target_img=reference)
+        dat = img.get_fdata(caching='unchanged').flatten()
+        
         dat[np.logical_not(np.isfinite(dat))] = 0   # zero out all NaN, indexing syntax required by numpy
         if center:
             dat[dat.nonzero()] = dat[dat.nonzero()] - dat[dat.nonzero()].mean()

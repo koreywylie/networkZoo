@@ -33,12 +33,15 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure as Figure
 
 
-# Set Paths for script
-sys.path.append(os.getcwd())  # default location of script, path needed for "Internal imports" below
-sys.path.append(opj(os.getcwd(), 'config_settings'))
-sys.path.append(opj(os.getcwd(), 'functions'))
-sys.path.append(opj(os.getcwd(), 'gui'))
-# mypath = os.getcwd()   #9/30/2020 --kw-- moved inside main loop
+# Get location of script
+if ('__file__' in locals()) or ('__file__' in globals()):
+    mypath = os.path.dirname(os.path.abspath(__file__)) 
+else:
+    mypath = os.getcwd()
+sys.path.append(mypath)  # include dirs. needed for "Internal imports"
+sys.path.append(opj(mypath, 'config_settings'))
+sys.path.append(opj(mypath, 'functions'))
+sys.path.append(opj(mypath, 'gui'))
 
 
 # Backup configuration settings, if needed
@@ -57,20 +60,24 @@ import zoo_About as about         # Qt window for about info
 import zoo_Tutorial as tutorial   # Qt window for Step-by-step tutorial
 import zoo_MaskMaker as masks     # fns. to create binary masks
 
-# Selectively suppress expected irrevelant warnings
+# Selectively suppress _expected_ irrevelant warnings
 import warnings
-warnings.filterwarnings('ignore', '.*Casting data from int32 to float32.*') #change of datatypes in nilearn
+#change of datatypes in nilearn
+warnings.filterwarnings('ignore', '.*Casting data from int32 to float32.*') 
 warnings.filterwarnings('ignore', '.*Casting data from int8 to float32.*')
-warnings.filterwarnings('ignore', '.*This figure includes Axes that are not compatible.*') #imprecise tight layout in matplotlib
-warnings.filterwarnings('ignore', '.*converting a masked element to nan.*') #NaN possible in masks
-warnings.filterwarnings('ignore', '.*invalid value encountered in greater.*') #poor NaN handling in nilearn
-warnings.filterwarnings('ignore', '.*No contour levels were found.*')  #binary ROI/ICN masks do not have contour levels when plotted in matplotlib
+#imprecise tight layout in matplotlib
+warnings.filterwarnings('ignore', '.*This figure includes Axes that are not compatible.*') 
+#NaN possible in masks
+warnings.filterwarnings('ignore', '.*converting a masked element to nan.*')
+#poor NaN handling in nilearn
+warnings.filterwarnings('ignore', '.*invalid value encountered in greater.*')
+#binary ROI/ICN masks do not have contour levels when plotted in matplotlib
+warnings.filterwarnings('ignore', '.*No contour levels were found.*')
 
+#Cannot thread changing selected ICA/ICN Qt list widget items
+warnings.filterwarnings('ignore', 
+                        ".*QObject::connect: Cannot queue arguments of type 'QItemSelection'.*")
 
-
-
-# ANATOMICAL_TO_TIMESERIES_PLOT_RATIO = 5   #9/30/2020 --kw-- moved inside main loop
-# CONFIGURATION_FILE = 'config_settings/config.json'  #9/30/2020 --kw-- moved inside main loop
 
 
 class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
@@ -91,14 +98,22 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
                    'mapped_ica' : {}, 'mapped_icn' : {}}
         self.corrs = {} # dict of correlations, indexed by ic name
         self.matches = {} # dict of top matches, indexed by ic name
+        self.reference_img = None # referrence nii vol. w/ smallest dimensions
         
         # Configuration file defaults
-        mypath = os.getcwd()
-        cfile = 'config_settings/config.json'
+        if ('mypath' not in locals()) and ('mypath' not in globals()):
+            if '__file__' in locals():
+                script_path = os.path.dirname(os.path.abspath(__file__)) 
+            else:
+                script_path = os.getcwd()
+        else:
+            script_path = mypath # needed to pass var. to fn. below
+        config_file = 'config_settings/config.json'
         if configuration_file is not None:
             if os.path.isfile(configuration_file):
-                cfile = configuration_file
-        self.load_configuration(cfile, mypath, config_backup)
+                config_file = configuration_file
+        self.load_configuration(config_file, script_path, config_backup)
+        
         
         # Setup display based on config settings
         if hasattr(self, 'config'):
@@ -195,6 +210,7 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
         # connections for menu items
         self.action_LoadAnalysis.triggered.connect(self.load_analysis)
         self.action_SaveAnalysis.triggered.connect(self.save_analysis)
+        self.action_SaveAnalysisAs.triggered.connect(self.save_analysis_as)
         self.action_ResetAnalysis.triggered.connect(partial(self.reset_analysis, 
                                                             clear_lists=True, 
                                                             clear_display=True, 
@@ -213,6 +229,8 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
         self.action_EditOutputParams.triggered.connect(self.edit_output_opts)
         
         self.action_LoadICAcomps.triggered.connect(self.io.browse_ica_files)
+        self.action_LoadICAtimeseries.triggered.connect(partial(self.io.load_ica_timeseries,
+                                                                prompt_fileDialog=True))
         self.action_RenameICAlist_select.triggered.connect(partial(self.rename_list_select,
                                                                    list_name='ica',
                                                                    listWidget=self.listWidget_ICAComponents))  
@@ -354,10 +372,12 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
                     configData = io.InputHandling.replace_faulty_config(None)
             if hasattr(self, 'config'):
                 title = "Error configuring networkZoo"
-                message = "New configuration file not found, defaulting to backup configuration settings"
+                message = "New configuration file not found,"
+                message += " defaulting to backup configuration settings"
             else:
                 title = "Error starting networkZoo"
-                message = "Configuration file not found, defaulting to original, non-modified settings."
+                message = "Configuration file not found,"
+                message += " defaulting to original, non-modified settings."
             QtWidgets.QMessageBox.warning(self, title, message)
         
         self.config_file = fname if isinstance(fname, str) else None
@@ -475,7 +495,14 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
         
     def create_FiguresAndTables(self):
         """Create Figures & Tables for all mappings"""
-                
+        
+        if len(self.gd['mapped']) == 0:
+            title = 'Problem generating output:'
+            message = 'No ICA comp. > ICN template mappings currently set,'
+            message +='\n no output to generate!'
+            QtWidgets.QMessageBox.warning(self, title, message)
+            return
+        
         f_caption = "Save Table and Figure(s) As:"
         f_dir = self.config['output_directory']
         if not os.path.isdir(f_dir): f_dir = mypath 
@@ -485,7 +512,7 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
         if ok:
             btn_txt = self.pushButton_runAnalysis.text()
             self.pushButton_runAnalysis.setText("Creating...")
-            extra_items = self.config['icn']['extra_items']
+            extra_items = self.config['icn']['extra_items'].copy()
             extra_items += self.config['noise']['extra_items']
             
             self.saverGUI = saver.PatienceTestingGUI(self.gd,
@@ -499,7 +526,9 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
                                                      extra_items = extra_items,
                                                      output_path = output_path)
             warnflag = False
-            output_files = [os.path.basename(f) for f in self.saverGUI.output.output_files if os.path.exists(f)]
+            output_files = [os.path.basename(f) 
+                            for f in self.saverGUI.output.output_files 
+                            if os.path.exists(f)]
             if output_files:
                 self.config['output_created'] = True
                 output_png = [f for f in output_files if os.path.splitext(f)[-1] in ['.png']]
@@ -512,8 +541,9 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
                 message = 'Output files not created! '
                 if self.saverGUI.output.stopImageSaver:
                     image_frag_path = self.saverGUI.output.output_path
-                    message += '\n\nImage creator interrupted,'
-                    message += ' figure fragments may remain in: ' + image_frag_path + '.\n\n'
+                    message += 'Image creator interrupted.'
+                    message += '\n\nFigure fragments may remain in:\n  ' 
+                    message += os.path.dirname(image_frag_path) + '\n\n'
                 message += 'See python log or terminal output for error messages'
                 QtWidgets.QMessageBox.warning(self, title, message)
             else:
@@ -546,7 +576,8 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
                                                                   "Save Mask As:", 
                                                                   self.config['base_directory'])
             if not mask_fname:
-                QtWidgets.QMessageBox.warning(self, "Error Creating Masks", "Save filename not selected")
+                QtWidgets.QMessageBox.warning(self, "Error Creating Masks", 
+                                              "Save filename not selected")
             else:
                 self.masks = masks.MaskMaker(self.gd, config=self.config)
                 self.masks.create_binaryMasks(mask_fname)
@@ -559,7 +590,8 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
         
         
     def show_tutorial(self):
-        """Step-by-step tutorial, to find current step in analysis & giving tips for next step(s)"""
+        """Step-by-step tutorial, 
+        to find current step in analysis & giving tips for next step(s)"""
         
         loadedICA = True if (self.listWidget_ICAComponents.count() > 0) else False
         loadedICNs = True if (self.listWidget_ICNtemplates.count() > 0) else False
@@ -601,7 +633,8 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
         
         if warn:
             warn_title = "Resetting Analysis"
-            message = "All currently loaded ICA files, ICN templates, and classifications will be discarded,"
+            message = "All currently loaded ICA files, ICN templates,"
+            message += " and classifications will be discarded,"
             message += "\n\nContinue?"
             if QtWidgets.QMessageBox.warning(self, warn_title, message,
                                              QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
@@ -617,6 +650,17 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
             self.gd = {'smri': {}, 'ica': {}, 'icn': {}, 
                        'mapped': {}, 'mapped_ica': {}, 'mapped_icn': {}}
         else:
+            # clear up img cache to prevent accumulation in memory
+            if 'ica' in self.gd.keys():
+                for ica_lookup in self.gd['ica'].keys():
+                    if 'img' in self.gd['ica'][ica_lookup].keys():
+                        if self.gd['ica'][ica_lookup]['img']:
+                            self.gd['ica'][ica_lookup]['img'].uncache()
+            if 'icn' in self.gd.keys():
+                for icn_lookup in self.gd['icn'].keys():
+                    if 'img' in self.gd['icn'][icn_lookup].keys():
+                        if self.gd['icn'][icn_lookup]['img']:
+                            self.gd['icn'][icn_lookup]['img'].uncache()
             self.gd['ica'] = {}
             self.gd['icn'] = {}
             self.gd['mapped'] = {}
@@ -624,16 +668,46 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
             self.gd['mapped_icn'] = {}
         self.corrs = {}
         self.matches = {}
-        if clear_display:
-            self.reset_display()
         if hasattr(self, 'config'):
             if 'saved_analysis' in self.config.keys():
                 self.config['saved_analysis'] = False
             if 'output_created' in self.config.keys():
                 self.config['output_created'] = False
+            if 'icn' in self.config.keys():
+                if 'extra_items' in self.config['icn'].keys():
+                    for extra in self.config['icn']['extra_items']:
+                            if extra not in self.gd['icn'].keys():
+                                self.io.update_file_info('icn', None, None, 
+                                                         self.listWidget_ICNtemplates,
+                                                         lookup_key=extra)
+            if 'noise' in self.config.keys():
+                if 'extra_items' in self.config['noise'].keys():
+                    for extra in self.config['noise']['extra_items']:
+                            if extra not in self.gd['icn'].keys():
+                                self.io.update_file_info('icn', None, None, 
+                                                         self.listWidget_ICNtemplates,
+                                                         lookup_key=extra)
+        if clear_display:
+            self.reset_display()
+
+
             
-                
     def save_analysis(self):
+        """Quick save info to existing file"""
+        
+        fname = None
+        if hasattr(self, 'config'):
+            if 'saved_analysis' in self.config.keys():
+                if self.config['saved_analysis']:
+                    if os.path.exists(self.config['saved_analysis_path']):
+                        fname = self.config['saved_analysis_path']
+        if not fname:
+            self.save_analysis_as()
+        else:
+            self.io.save_analysis_json(fname)
+            
+        
+    def save_analysis_as(self):
         """Save info needed for 'load_analysis()' fn."""
         
         fname, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save Analysis As:", 
@@ -655,6 +729,7 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
                 message += " saved analysis will not load correctly"
                 QtWidgets.QMessageBox.information(self, title, message)
             self.config['saved_analysis'] = True
+            self.config['saved_analysis_path'] = fname
             self.io.save_analysis_json(fname)
 
     def load_analysis(self):
@@ -670,9 +745,10 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
         else:
             self.reset_analysis(clear_lists=True, clear_display=True, warn=False)
             self.io.load_analysis_json(fname)
-            self.load_configuration(self.io.config)
+            
+            self.config = self.io.config
             self.corrs = self.io.corrs
-
+            
             if self.listWidget_Classifications.count() > 0:
                 self.listWidget_Classifications.setCurrentRow(0)
                 self.update_gui_classifications(self.listWidget_Classifications.currentItem())
@@ -686,14 +762,18 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
         btn_txt = self.pushButton_runAnalysis.text()
         self.pushButton_runAnalysis.setText("Correlating...")
         
+        list_empty = False
         if len(self.gd['ica']) == 0: self.io.browse_ica_files()
-        if len(self.gd['icn']) == 0: self.io.browse_icn_files()
-        if len(self.gd['ica']) == 0 or len(self.gd['icn']) == 0:
+        if len(self.gd['icn']) == 0:
+            self.io.browse_icn_files()
+        elif set(self.gd['icn'].keys()) == set(self.config['icn']['extra_items'] + self.config['noise']['extra_items']):
+            list_empty = True
+        if len(self.gd['ica']) == 0 or len(self.gd['icn']) == 0 or list_empty:
             title = "Error Running Analysis"
             message = "Cannot start correlation analysis."
             if len(self.gd['ica']) == 0:
                 message += " No ICA spatial maps loaded."
-            if len(self.gd['icn']) == 0:
+            if len(self.gd['icn']) == 0 or list_empty:
                 message += " No ICN templates loaded."
             QtWidgets.QMessageBox.warning(self, title, message)
             self.pushButton_runAnalysis.setText(btn_txt)
@@ -705,7 +785,7 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
                                      in_filenames=self.get_img_names('ica'),
                                      map_files=self.get_imgs('icn'), 
                                      map_filenames=self.get_img_names('icn'), 
-                                     corrs=self.corrs)
+                                     corrs=self.corrs)        
         self.prbrGUI = map.PatienceTestingGUI(map_files=self.get_imgs('icn'), 
                                               map_filenames=self.get_img_names('icn'), 
                                               in_files=self.get_imgs('ica'), 
@@ -726,9 +806,17 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
         elif self.listWidget_ICAComponents.currentRow() != -1:
             ica_item = self.listWidget_ICAComponents.currentItem()
             self.update_gui_ica(ica_item)
-        elif self.listWidget_ICNtemplates.currentRow() != -1:
-            icn_item = self.listWidget_ICNtemplates.currentItem()
-            self.update_gui_icn(icn_item)
+        else:    # default to displaying 1st IC & top ICN corr.
+            self.listWidget_ICAComponents.setCurrentRow(0)
+            ica_item = self.listWidget_ICAComponents.currentItem()
+            ica_lookup = str(ica_item.data(Qt.UserRole))
+            top_match = self.mapper.get_top_matches(ica_lookup, 
+                                                    self.corrs, num_matches=1)
+            if len(top_match) > 0:
+                icn_lookup, _ = top_match[0]
+                icn_item = self.gd['icn'][icn_lookup]['widget']
+                self.listWidget_ICNtemplates.setCurrentItem(icn_item)
+                self.update_gui_ica(ica_item)
             
         
     def allow_ica_multiClass(self, state):
@@ -770,18 +858,21 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
         """Fine, acabado, al-nahaya, NetworkZoo is pining for the fjords"""
         
         sys.stderr.write('\r')
-        if self.config['saved_analysis'] and not self.config['saved_analysis'] and (len(self.gd['mapped']) > 0):
-            if QtWidgets.QMessageBox.question(None, '', "Save current analysis before exiting networkZoo?",
-                                                  QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                                                  QtWidgets.QMessageBox.Yes) == QtWidgets.QMessageBox.Yes:
+        if (self.config['saved_analysis'] and 
+            not self.config['saved_analysis'] and 
+            (len(self.gd['mapped']) > 0)):
+            if QtWidgets.QMessageBox.question(None, '', 
+                                              "Save current analysis before exiting networkZoo?",
+                                              QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                                              QtWidgets.QMessageBox.Yes) == QtWidgets.QMessageBox.Yes:
                 self.save_analysis()
         if QtWidgets.QMessageBox.question(None, '', "Are you sure you want quit networkZoo?",
                                          QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
                                          QtWidgets.QMessageBox.No) == QtWidgets.QMessageBox.Yes:
             # QtWidgets.QApplication.quit()
-            if 'd_opened' in locals(): # manually close all open nilearn plots, prevent accumulation in memory
+            if 'd_opened' in locals(): 
                 for d in d_opened:
-                    d.close()  
+                    d.close()  # manually close all open nilearn plots, prevent accumulation in memory
                     d_opened.remove(d)
             sys.exit()
             
@@ -916,10 +1007,17 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
                         if lookup not in keep_lookups:   # remove item from gd[list], if not mapped
                             self.gd[list_name].pop(lookup)
                     update_display = True
-        listWidget.clearSelection()                  # deselects current item(s)
+        listWidget.clearSelection()                  # deselects & clears current item(s)
+        if hasattr(self, 'config'):
+            if list_name in self.config.keys():
+                if 'extra_items' in self.config[list_name].keys():
+                    for extra in self.config[list_name]['extra_items']:
+                            if extra not in self.gd[list_name].keys():
+                                self.io.update_file_info(list_name, None, None, 
+                                                         listWidget,
+                                                         lookup_key=extra)
         listWidget.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)   
-        if update_display:  self.update_plots()                            
-        
+        if update_display:  self.update_plots()
         
         
     def clear_list_all(self, list_name='ica', listWidget=None):
@@ -966,6 +1064,14 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
             else:
                 self.gd[list_name] = {}
             listWidget.clear()
+            if hasattr(self, 'config'):
+                if list_name in self.config.keys():
+                    if 'extra_items' in self.config[list_name].keys():
+                        for extra in self.config[list_name]['extra_items']:
+                                if extra not in self.gd[list_name].keys():
+                                    self.io.update_file_info(list_name, None, None, 
+                                                             listWidget,
+                                                             lookup_key=extra)
             self.update_plots()
         
 
@@ -974,14 +1080,14 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
     #------------------------------------------------------
     def get_imgs(self, list_name):
         """Select MRI/fMRI image vols. from list"""
-        imgs = [img for img in self.get_item_prop(list_name, 'img') if isinstance(img, 
-                                                                                (Nifti1Image, Nifti1Pair))]
+        imgs = [img for img in self.get_item_prop(list_name, 'img') if
+                isinstance(img, (Nifti1Image, Nifti1Pair))]
         return imgs
     
     def get_img_names(self, list_name):
         """Get names for MRI/fMRI vols. in list"""
-        imgs = [True if isinstance(img, (Nifti1Image, Nifti1Pair))
-                else False for img in self.get_item_prop(list_name, 'img')]
+        imgs = [True if isinstance(img, (Nifti1Image, Nifti1Pair)) else False 
+                for img in self.get_item_prop(list_name, 'img')]
         names_all = [name for name in self.get_item_prop(list_name, 'lookup_name')]
         names = []
         for i, name in enumerate(names_all):
@@ -1230,13 +1336,13 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
             return  #if ICN list is empty, nothing to repopulate
         else:
             self.listWidget_ICNtemplates.clear()
-        
+            
         rank = 0
         if ica_lookup not in self.corrs.keys():
             self.corrs.update({ica_lookup : {}})
         for icn_lookup, ica_corr in sorted(self.corrs[ica_lookup].items(),
                                            key=lambda x:x[1], reverse=True):
-            if icn_lookup and ica_corr:
+            if icn_lookup and ica_corr and (icn_lookup in self.gd['icn'].keys()):
                 rank = rank+1
                 item = QtWidgets.QListWidgetItem(icn_lookup)
                 self.listWidget_ICNtemplates.addItem(item)
@@ -1248,12 +1354,14 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
                 
         # Add slots for non-ranked, non-corr. ICNs & non-template ICNs/artifacts
         nonCorr_extras = [extra for extra in self.config['icn']['extra_items']]
-        nonCorr_extras = nonCorr_extras + [extra for extra in self.config['noise']['extra_items']]
-        nonCorr_extras = [extra for extra in nonCorr_extras if extra not in self.corrs[ica_lookup].keys()]
+        nonCorr_extras += [extra for extra in self.config['noise']['extra_items']]
+        nonCorr_extras = [extra for extra in nonCorr_extras if 
+                          extra not in self.corrs[ica_lookup].keys()]
         nonCorr_icns = [icn_lookup for icn_lookup in self.gd['icn'].keys() if 
-                       icn_lookup not in self.corrs[ica_lookup].keys()]
-        nonCorr_icns = [icn_lookup for icn_lookup in nonCorr_icns if
-                       icn_lookup not in nonCorr_extras]
+                        icn_lookup not in self.corrs[ica_lookup].keys()]
+        nonCorr_icns = [icn_lookup for icn_lookup in nonCorr_icns if 
+                        icn_lookup not in nonCorr_extras]
+        
         for icn_lookup in nonCorr_icns:
             item = QtWidgets.QListWidgetItem(icn_lookup)
             self.listWidget_ICNtemplates.addItem(item)
@@ -1415,7 +1523,8 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
             mapped_list = 'mapped_icn'
             dup_type = 'ICN template'
             dup_type_other = 'ICA comps.'
-            extras = [k for k in self.gd['icn'].keys() if re.match('\\.*noise', k, flags=re.IGNORECASE)]
+            extras = [k for k in self.gd['icn'].keys() if re.match('\\.*noise', k, 
+                                                                   flags=re.IGNORECASE)]
             extras += self.config['icn']['extra_items'] 
             extras += self.config['noise']['extra_items']
         else:
@@ -1548,7 +1657,7 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
                 self.selectionWin = select.newSelectWin(self.listWidget_Classifications, 
                                                         title="Select classifications to add:", 
                                                         add_items = new_mappings,
-                                                        list_subset=[]) #empty subset excludes current list items
+                                                        list_subset=[]) #[] excludes current list items
                 
                 if self.selectionWin.accept_result == QtWidgets.QDialog.Accepted:
                     for mapping_lookup in self.selectionWin.selected_display_names:
@@ -1836,7 +1945,9 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
         if self.buttonGroup_xview.checkedButton() == self.radioButton_ortho:
             if event.inaxes is None:
                 return
-            elif event.inaxes == self.figure_x.axes[1]: #coronal section, based on plotting limits ~ MNI coords
+            
+            # axes indices based on plotting limits ~ MNI coords
+            elif event.inaxes == self.figure_x.axes[1]: #coronal section
                 x = event.xdata
                 y = self.horizontalSlider_Yslice.value()
                 z = event.ydata
@@ -1864,7 +1975,8 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
             return
         
 
-    def plot_vols(self, fig, ica_lookup, icn_lookup, displayLayout='ortho', coords=(0,0,0), *args, **kwargs):
+    def plot_vols(self, fig, ica_lookup, icn_lookup, displayLayout='ortho', coords=(0,0,0), 
+                  *args, **kwargs):
         """Default spatial map plotting"""
         
         # Required parameters
@@ -1921,6 +2033,26 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
             return    #nothing to plot
         if stat_img is None:
             return    #nothing to plot
+        
+        # Prepare vols. for display
+        if self.reference_img: # one-time reshape & downsample vols. to speed display
+            ref_img = self.reference_img
+            if ica_lookup:
+                if ref_img.shape < stat_img.shape:
+                    self.gd['ica'][ica_lookup]['img'] = image.resample_to_img(source_img=stat_img,
+                                                                              target_img=ref_img)
+                elif ref_img.shape > stat_img.shape:
+                    self.reference_img = ref_img
+            if show_icn and isinstance(self.gd['icn'][icn_lookup]['img'], 
+                                       (Nifti1Image, Nifti1Pair)):
+                templ_img = self.gd['icn'][icn_lookup]['img']
+                if ref_img.shape < templ_img.shape:
+                    self.gd['icn'][icn_lookup]['img'] = image.resample_to_img(source_img=templ_img,
+                                                                              target_img=ref_img)
+                elif ref_img.shape > templ_img.shape:
+                    self.reference_img = templ_img
+        else:
+            self.reference_img = stat_img
 
         thresh = None
         if thresh_ica_vol and ica_vol_thresh:

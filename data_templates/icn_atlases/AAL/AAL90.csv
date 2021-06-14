@@ -3,30 +3,30 @@ ICN Filename & Index:,ICN Label:,Noise Classification:,AAL Index Number:,Full Na
 "AAL90,2",Precentral_R,ICN,2002,Right Precentral Gyrus
 "AAL90,3",Frontal_Sup_L,ICN,2101,Left Superior Frontal Gyrus
 "AAL90,4",Frontal_Sup_R,ICN,2102,Right Superior Frontal Gyrus
-"AAL90,5",Frontal_Sup_Orb_L,ICN,2111,Left Orbitofrontal Cortex
-"AAL90,6",Frontal_Sup_Orb_R,ICN,2112,Right Orbitofrontal Cortex
+"AAL90,5",Frontal_Sup_Orb_L,ICN,2111,Left Superior Frontal Gyrus Orbital Region
+"AAL90,6",Frontal_Sup_Orb_R,ICN,2112,Right Superior Frontal Gyrus Orbital Region
 "AAL90,7",Frontal_Mid_L,ICN,2201,Left Middle Frontal Gyrus
 "AAL90,8",Frontal_Mid_R,ICN,2202,Right Middle Frontal Gyrus
-"AAL90,9",Frontal_Mid_Orb_L,ICN,2211,Left Orbitofrontal Cortex
-"AAL90,10",Frontal_Mid_Orb_R,ICN,2212,Right Orbitofrontal Cortex
+"AAL90,9",Frontal_Mid_Orb_L,ICN,2211,Left Middle Frontal Gyrus Orbital Region
+"AAL90,10",Frontal_Mid_Orb_R,ICN,2212,Right Middle Frontal Gyrus Orbital Region
 "AAL90,11",Frontal_Inf_Oper_L,ICN,2301,Left Frontal Operculum
 "AAL90,12",Frontal_Inf_Oper_R,ICN,2302,Right Frontal Operculum
-"AAL90,13",Frontal_Inf_Tri_L,ICN,2311,Left Inferior Frontal Gyrus
-"AAL90,14",Frontal_Inf_Tri_R,ICN,2312,Right Inferior Frontal Gyrus
-"AAL90,15",Frontal_Inf_Orb_L,ICN,2321,Left Orbitofrontal Cortex
-"AAL90,16",Frontal_Inf_Orb_R,ICN,2322,Right Orbitofrontal Cortex
+"AAL90,13",Frontal_Inf_Tri_L,ICN,2311,Left Inferior Frontal Gyrus Triangular Region
+"AAL90,14",Frontal_Inf_Tri_R,ICN,2312,Right Inferior Frontal Gyrus Triangular
+"AAL90,15",Frontal_Inf_Orb_L,ICN,2321,Left Inferior Frontal Gyrus Orbital Region
+"AAL90,16",Frontal_Inf_Orb_R,ICN,2322,Right Inferior Frontal Gyrus Orbital Region
 "AAL90,17",Rolandic_Oper_L,ICN,2331,Left Parietal Operculum
 "AAL90,18",Rolandic_Oper_R,ICN,2332,Right Parietal Operculum
 "AAL90,19",Supp_Motor_Area_L,ICN,2401,Left Supplementary Motor Area
 "AAL90,20",Supp_Motor_Area_R,ICN,2402,Right Supplementary Motor Area
 "AAL90,21",Olfactory_L,ICN,2501,Left Olfactory Cortex
 "AAL90,22",Olfactory_R,ICN,2502,Right Olfactory Cortex
-"AAL90,23",Frontal_Sup_Medial_L,ICN,2601,Left Medial Prefrontal Cortex
-"AAL90,24",Frontal_Sup_Medial_R,ICN,2602,Right Medial Prefrontal Cortex
-"AAL90,25",Frontal_Mid_Orb_L,ICN,2611,Left Orbitofrontal Cortex
-"AAL90,26",Frontal_Mid_Orb_R,ICN,2612,Right Orbitofrontal Cortex
-"AAL90,27",Rectus_L,ICN,2701,Left Orbitofrontal Cortex
-"AAL90,28",Rectus_R,ICN,2702,Right Orbitofrontal Cortex
+"AAL90,23",Frontal_Sup_Medial_L,ICN,2601,Left Superior Medial Prefrontal Cortex
+"AAL90,24",Frontal_Sup_Medial_R,ICN,2602,Right Superior Medial Prefrontal Cortex
+"AAL90,25",Frontal_Med_Orb_L,ICN,2611,Left Medial Prefrontal Cortex Orbital Region
+"AAL90,26",Frontal_Med_Orb_R,ICN,2612,Right Medial Prefrontal Cortex Orbital Region
+"AAL90,27",Rectus_L,ICN,2701,Left Rectus Gyrus
+"AAL90,28",Rectus_R,ICN,2702,Right Rectus Gyrus
 "AAL90,29",Insula_L,ICN,3001,Left Insula
 "AAL90,30",Insula_R,ICN,3002,Right Insula
 "AAL90,31",Cingulum_Ant_L,ICN,4001,Left Anterior Cingulate Cortex
