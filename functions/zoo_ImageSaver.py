@@ -4,6 +4,7 @@
 from os.path import join as opj  # method to join strings of file paths
 from string import digits
 import os, re
+from math import ceil
 
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets
@@ -18,8 +19,6 @@ import csv
 
 # Internal imports
 import zoo_ProgressBarWin as prbr    # PyQt widget in ../gui
-
-
 
 
 class ImageSaver(QObject):
@@ -78,8 +77,8 @@ class ImageSaver(QObject):
         self.outputDir = ''
         self.output_files = []
         
-        # Reload all images before plotting, reseting to non-downscaled res.
-        self.reload_imgs()
+        # # Reload all images before plotting, reseting to non-downscaled res.
+        # self.reload_imgs()
     
     # fns. to access signals from another class
     def registerSignal_maxIJ(self, obj):
@@ -117,6 +116,7 @@ class ImageSaver(QObject):
         for high-res. plotting after downsampling for display"""
         
         print('Reloading all images/volumes...')
+        
         for listName in ['ica', 'icn']:
             for lookup in self.gd[listName].keys():
                 if self.gd[listName][lookup]['img']:                
@@ -396,13 +396,17 @@ class ImageSaver(QObject):
                 D1,D2 = N,1 # plot single col.
             else:
                 D1 = min(N, max_rows) # rows as 1st dim...
-                D2 = min(max((N+D1) // D1, 1), max_cols) # & cols. as 2nd
+                D2 = min(ceil(N / D1), max_cols) # ...& cols. as 2nd
+                # D2 = min(max((N + (N % D1)) // D1, 1), max_cols) # ...& cols. as 2nd  # 7/7/2022 --kw-- debugging
+                # D2 = min(max((N+D1) // D1, 1), max_cols) # & cols. as 2nd  # 6/8/2022 --kw-- debugging, incorrect calc. of lines                
         else:
             if N <= max_cols:
                 D1,D2 = N,1 # plot single row
             else:
                 D1 = min(N, max_cols) # cols as 1st dim...
-                D2 = min(max((N+D1) // D1, 1), max_rows) # & rows as 2nd
+                D2 = min(ceil(N / D1), max_rows) # ...& rows as 2nd
+                # D2 = min(max((N + (N % D1)) // D1, 1), max_rows) # ...& rows as 2nd  # 7/7/2022 --kw-- debugging
+                # D2 = min(max((N+D1) // D1, 1), max_rows) # & rows as 2nd  # 6/8/2022 --kw-- debugging, incorrect calc. of lines
         Nmax = min(N, D1 * D2)
             
         # Arrange figure pieces & Ensure dimensions fit within QPixMap limits

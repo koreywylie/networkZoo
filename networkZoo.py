@@ -4,6 +4,15 @@
 networkZoo.py
 """
 
+# 6/9/2022 --kw--
+#   -tweaked save & load analysis to handle customized names
+#   -tweaked gui behavior to reset ica display names
+#   -tweaked non-multiclassification behavior to search for existing list items w/ display name, rm. latter rather than search & rm. ica_lookup
+# 5/16/2022 --kw-- 
+#   -removed 'from nilearn import input_data' 2/2 depreaction following nilearn 0.9, plus module fns. not used
+#   -tweaked re-loading of Qt lists, to clear self.corrs & repopulate ICNs w/ placeholder defaults automatically
+#   -debugged, plt.subplot(gs[]) mangles t.s. plot if self.figure_x plot is clicked on; while fig.add_subplot(gs[]) preserves plotting
+
 # Python Libraries
 from os.path import join as opj  # method to join strings of file paths
 import getopt  # used to parse command-line input
@@ -21,7 +30,8 @@ from PyQt5.QtGui import QColor, QPixmap, QPainter
 
 # Mathematical/Neuroimaging/Plotting Libraries
 import numpy as np
-from nilearn import plotting, image, input_data  # library for neuroimaging
+from nilearn import plotting, image  # library for neuroimaging   # 5/16/2022 --kw-- input_data module deprecated, main fn. "NiftiMasker" not used in script, now part of nilearn.maskers module starting in nilearn 0.9
+# from nilearn import plotting, image, input_data  # library for neuroimaging
 from nilearn import masking
 from scipy.ndimage import binary_dilation #used to smooth edges of binary masks
 from nibabel.nifti1 import Nifti1Image, Nifti1Pair
@@ -73,10 +83,13 @@ warnings.filterwarnings('ignore', '.*converting a masked element to nan.*')
 warnings.filterwarnings('ignore', '.*invalid value encountered in greater.*')
 #binary ROI/ICN masks do not have contour levels when plotted in matplotlib
 warnings.filterwarnings('ignore', '.*No contour levels were found.*')
+#linear resampling non-optimal choice for resampling binary ROI/ICN templates in nilearn
+warnings.filterwarnings('ignore', '.*Resampling binary images.*')
 
-#Cannot thread changing selected ICA/ICN Qt list widget items
-warnings.filterwarnings('ignore', 
-                        ".*QObject::connect: Cannot queue arguments of type 'QItemSelection'.*")
+# #Cannot thread changing selected ICA/ICN Qt list widget items
+# warnings.filterwarnings('ignore', 
+#                         ".*QObject::connect: Cannot queue arguments of type 'QItemSelection'.*")  # 6/9/2022 --kw-- not a warning, not blocked, does not affect output from threaded zoo_ImageSaver.py
+
 
 
 
@@ -421,8 +434,8 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
         self.update_plots()
                 
         
-    
-    def reset_display(self, initialize=False):
+    def reset_display(self):
+    # def reset_display(self, initialize=False):  # 6/9/2022 --kw-- removing deprecated arg
         """Clear Qt display & unselect lists"""
         
         self.figure_x.clear()
@@ -430,10 +443,22 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
         self.figure_t.clear()
         self.canvas_t.draw()
         
+        self.listWidget_ICAComponents.clear()  # 6/9/2022 --kw-- reset ICA names as well
+        ica_keys = [k for k in self.gd['ica'].keys()]
+        if len(ica_keys) > 0:
+            for ica_lookup in ica_keys:
+                if (self.config['ica']['allow_multiclassifications'] or 
+                    (ica_lookup not in self.gd['mapped_ica'].keys())):
+                        item = QtWidgets.QListWidgetItem(ica_lookup)
+                        self.listWidget_ICAComponents.addItem(item)
+                        item.setData(Qt.UserRole, ica_lookup)
+                        self.gd['ica'][ica_lookup]['widget'] = item
+                        item.setText(self.gd['ica'][ica_lookup]['display_name'])
         self.listWidget_ICAComponents.clearSelection()
         self.listWidget_ICAComponents.setCurrentRow(-1)
-        self.listWidget_Classifications.clearSelection()
-        self.listWidget_Classifications.setCurrentRow(-1)
+        
+        # self.listWidget_Classifications.clearSelection()  # 6/9/2022 --kw-- moved to below
+        # self.listWidget_Classifications.setCurrentRow(-1)
 
         self.listWidget_ICNtemplates.clear()
         icn_keys = [k for k in self.gd['icn'].keys() if k not in self.config['icn']['extra_items']]
@@ -443,15 +468,22 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
                     self.listWidget_ICNtemplates.addItem(item)
                     item.setData(Qt.UserRole, icn_lookup)
                     self.gd['icn'][icn_lookup]['widget'] = item
-                    item.setText(icn_lookup)
-            for extra in self.config['icn']['extra_items']:
-                    item = QtWidgets.QListWidgetItem(extra)
-                    self.listWidget_ICNtemplates.addItem(item)
-                    item.setData(Qt.UserRole, extra)
-                    self.gd['icn'][icn_lookup]['widget'] = item
-                    item.setText(extra)
+                    item.setText(self.gd['icn'][icn_lookup]['display_name'])
+                    # item.setText(icn_lookup)  # 6/9/2022 --kw-- tweaking display behavior
+        for extra in self.config['icn']['extra_items']:  # 6/9/2022 --kw-- tweaking display behavior to always include extra items, even if len(icn_keys) == 0
+                item = QtWidgets.QListWidgetItem(extra)
+                self.listWidget_ICNtemplates.addItem(item)
+                item.setData(Qt.UserRole, extra)
+                self.gd['icn'][extra]['widget'] = item
+                # self.gd['icn'][icn_lookup]['widget'] = item  # 6/9/2022 --kw-- debugging
+                item.setText(self.gd['icn'][extra]['display_name'])
+                # item.setText(extra)  # 6/9/2022 --kw-- tweaking display behavior
         self.listWidget_ICNtemplates.clearSelection()
         self.listWidget_ICNtemplates.setCurrentRow(-1)
+        
+        self.listWidget_Classifications.clearSelection()  # 6/9/2022 --kw-- moved from above
+        self.listWidget_Classifications.setCurrentRow(-1)
+
         
     
     #---------------------------------------------------
@@ -748,7 +780,7 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
             
             self.config = self.io.config
             self.corrs = self.io.corrs
-            
+            self.reset_display()   # 6/9/2022 --kw-- tweaking behavior
             if self.listWidget_Classifications.count() > 0:
                 self.listWidget_Classifications.setCurrentRow(0)
                 self.update_gui_classifications(self.listWidget_Classifications.currentItem())
@@ -852,6 +884,7 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
                                                                            Qt.MatchExactly)
                 for item in mapped_ica_items:
                     self.listWidget_ICAComponents.takeItem(self.listWidget_ICAComponents.row(item))
+                self.gd['ica'][ica_lookup]['widget'] = None
                     
                     
     def quit_gui(self):
@@ -979,7 +1012,8 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
         self.selectionWin = select.newSelectWin(listWidget, title=title0, 
                                                 extras=extras, list_subset=list_subset)
         
-        update_display = False
+        update_display = True
+        # update_display = False  # 6/9/2022 --kw-- tweaking default behavior to update display after rm. items
         if self.selectionWin.accept_result == QtWidgets.QDialog.Accepted:
             for lookup in self.selectionWin.selected_lookup_names:
                 if list_name == 'mapped':
@@ -1006,6 +1040,16 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
                         listWidget.takeItem(listWidget.row(item))  # remove item from qlistwidget
                         if lookup not in keep_lookups:   # remove item from gd[list], if not mapped
                             self.gd[list_name].pop(lookup)
+                            
+                            # 6/13/2022 --kw-- new functionality, testing/debugging...
+                            if list_name == 'ica':  # remove associated corrs. 
+                                if lookup in self.corrs.keys():  
+                                    del self.corrs[lookup]
+                            elif list_name == 'icn':
+                                for ica_lookup in self.corrs.keys():
+                                    if lookup in self.corrs[ica_lookup].keys():
+                                        del self.corrs[ica_lookup][lookup]
+
                     update_display = True
         listWidget.clearSelection()                  # deselects & clears current item(s)
         if hasattr(self, 'config'):
@@ -1016,8 +1060,15 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
                                 self.io.update_file_info(list_name, None, None, 
                                                          listWidget,
                                                          lookup_key=extra)
-        listWidget.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)   
-        if update_display:  self.update_plots()
+        listWidget.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        if update_display:  self.reset_display()  # 6/17/2022 --kw-- adding full reset of display, preventing mislabelling of ICs
+        # if update_display:  # 6/13/2022 --kw-- adding partial reset of display
+        #     self.figure_x.clear()
+        #     self.canvas_x.draw()
+        #     self.figure_t.clear()
+        #     self.canvas_t.draw()
+        #     self.update_plots()
+        # if update_display:  self.update_plots()  # 6/13/2022 --kw-- adding partial reset of display
         
         
     def clear_list_all(self, list_name='ica', listWidget=None):
@@ -1050,7 +1101,10 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
             elif list_name=='ica':
                 rm_keys = [ica_lookup for ica_lookup in self.gd['ica'].keys() 
                            if ica_lookup not in self.gd['mapped_ica'].keys()]
-                for ica_lookup in rm_keys: del self.gd['ica'][ica_lookup]
+                for ica_lookup in rm_keys:  # 5/16/2022 --kw-- tweaking, need to delete entries in self.corrs
+                    del self.gd['ica'][ica_lookup]
+                    if ica_lookup in self.corrs.keys(): del self.corrs[ica_lookup]
+                # for ica_lookup in rm_keys: del self.gd['ica'][ica_lookup]  # 5/16/2022 --kw-- tweaking, need to delete entries in self.corrs
                 self.lineEdit_ICANetwork.clear()
             elif list_name=='icn':
                 rm_keys = [icn_lookup for icn_lookup in self.gd['icn'].keys() 
@@ -1059,20 +1113,33 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
                            if icn_lookup not in self.config['icn']['extra_items']]
                 rm_keys = [icn_lookup for icn_lookup in rm_keys 
                            if icn_lookup not in self.config['noise']['extra_items']]
-                for icn_lookup in rm_keys: del self.gd['icn'][icn_lookup]
+                for icn_lookup in rm_keys:  # 5/16/2022 --kw-- tweaking, need to delete entries in self.corrs
+                    del self.gd['icn'][icn_lookup]
+                    for ica_lookup in self.corrs.keys():
+                        if icn_lookup in self.corrs[ica_lookup].keys():
+                            del self.corrs[ica_lookup][icn_lookup]
+                # for icn_lookup in rm_keys: del self.gd['icn'][icn_lookup]   # 5/16/2022 --kw-- tweaking, need to delete entries in self.corrs
+                self.repopulate_ICNs()  # 5/16/2022 --kw-- added tweak for usability
                 self.lineEdit_mappedICANetwork.clear()
             else:
                 self.gd[list_name] = {}
-            listWidget.clear()
-            if hasattr(self, 'config'):
-                if list_name in self.config.keys():
-                    if 'extra_items' in self.config[list_name].keys():
-                        for extra in self.config[list_name]['extra_items']:
-                                if extra not in self.gd[list_name].keys():
-                                    self.io.update_file_info(list_name, None, None, 
-                                                             listWidget,
-                                                             lookup_key=extra)
-            self.update_plots()
+            
+            if list_name is not 'icn':  # 5/16/2022 --kw-- tweak for usability, icn case handled in repopulate_ICNs()
+                listWidget.clear() 
+                if hasattr(self, 'config'):
+                    if list_name in self.config.keys():
+                        if 'extra_items' in self.config[list_name].keys():
+                            for extra in self.config[list_name]['extra_items']:
+                                    if extra not in self.gd[list_name].keys():
+                                        self.io.update_file_info(list_name, None, None, 
+                                                                 listWidget,
+                                                                 lookup_key=extra)
+            self.reset_display()  # 6/17/2022 --kw-- adding full reset of display, preventing mislabelling of ICs
+            # self.figure_x.clear()# 6/13/2022 --kw-- testing, adding partial reset of display
+            # self.canvas_x.draw()# 6/13/2022 --kw-- testing, adding partial reset of display
+            # self.figure_t.clear()# 6/13/2022 --kw-- testing, adding partial reset of display
+            # self.canvas_t.draw()# 6/13/2022 --kw-- testing, adding partial reset of display
+            # self.update_plots()
         
 
     #------------------------------------------------------
@@ -1331,37 +1398,59 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
     def repopulate_ICNs(self, ica_lookup=None):
         """Clear ICN list & re-populate w/ ranked items"""
 
-        if not ica_lookup: return #nothing to do
-        if self.listWidget_ICNtemplates.count() == 0:
-            return  #if ICN list is empty, nothing to repopulate
-        else:
-            self.listWidget_ICNtemplates.clear()
-            
-        rank = 0
-        if ica_lookup not in self.corrs.keys():
-            self.corrs.update({ica_lookup : {}})
-        for icn_lookup, ica_corr in sorted(self.corrs[ica_lookup].items(),
-                                           key=lambda x:x[1], reverse=True):
-            if icn_lookup and ica_corr and (icn_lookup in self.gd['icn'].keys()):
-                rank = rank+1
-                item = QtWidgets.QListWidgetItem(icn_lookup)
-                self.listWidget_ICNtemplates.addItem(item)
-                item.setData(Qt.UserRole, icn_lookup)
-                text = '%s.  %s   (%0.2f)' %(rank, self.gd['icn'][icn_lookup]['display_name'], 
-                                             self.corrs[ica_lookup][icn_lookup])
-                item.setText(text)
-                self.gd['icn'][icn_lookup]['widget'] = item
+        if self.listWidget_ICNtemplates.count() > 0: self.listWidget_ICNtemplates.clear()
+        if ica_lookup:  # 5/16/2022 --kw-- adding default behavior w/o input, repopulate list w/o ranking
+            if ica_lookup not in self.corrs.keys(): self.corrs.update({ica_lookup : {}})
+            rank = 0
+            for icn_lookup, ica_corr in sorted(self.corrs[ica_lookup].items(),
+                                               key=lambda x:x[1], reverse=True):
+                if icn_lookup and ica_corr and (icn_lookup in self.gd['icn'].keys()):
+                    rank = rank + 1
+                    item = QtWidgets.QListWidgetItem(icn_lookup)
+                    self.listWidget_ICNtemplates.addItem(item)
+                    item.setData(Qt.UserRole, icn_lookup)
+                    text = '%s.  %s   (%0.2f)' %(rank, self.gd['icn'][icn_lookup]['display_name'], 
+                                                 self.corrs[ica_lookup][icn_lookup])
+                    item.setText(text)
+                    self.gd['icn'][icn_lookup]['widget'] = item
+        # if not ica_lookup: return #nothing to do  # 5/16/2022 --kw-- adding default behavior w/o input, repopulate list w/o ranking
+        # if self.listWidget_ICNtemplates.count() == 0:
+        #     return  #if ICN list is empty, nothing to repopulate
+        # else:
+        #     self.listWidget_ICNtemplates.clear()
+        #     
+        # rank = 0
+        # if ica_lookup not in self.corrs.keys():
+        #     self.corrs.update({ica_lookup : {}})
+        # for icn_lookup, ica_corr in sorted(self.corrs[ica_lookup].items(),
+        #                                    key=lambda x:x[1], reverse=True):
+        #     if icn_lookup and ica_corr and (icn_lookup in self.gd['icn'].keys()):
+        #         rank = rank+1
+        #         item = QtWidgets.QListWidgetItem(icn_lookup)
+        #         self.listWidget_ICNtemplates.addItem(item)
+        #         item.setData(Qt.UserRole, icn_lookup)
+        #         text = '%s.  %s   (%0.2f)' %(rank, self.gd['icn'][icn_lookup]['display_name'], 
+        #                                      self.corrs[ica_lookup][icn_lookup])
+        #         item.setText(text)
+        #         self.gd['icn'][icn_lookup]['widget'] = item
                 
         # Add slots for non-ranked, non-corr. ICNs & non-template ICNs/artifacts
         nonCorr_extras = [extra for extra in self.config['icn']['extra_items']]
         nonCorr_extras += [extra for extra in self.config['noise']['extra_items']]
-        nonCorr_extras = [extra for extra in nonCorr_extras if 
-                          extra not in self.corrs[ica_lookup].keys()]
+        # nonCorr_extras = [extra for extra in nonCorr_extras if 
+        #                   extra not in self.corrs[ica_lookup].keys()]  # 5/16/2022 --kw-- adding default behavior w/o input, repopulate list w/o ranking
+        # nonCorr_icns = [icn_lookup for icn_lookup in self.gd['icn'].keys() if 
+        #                 icn_lookup not in self.corrs[ica_lookup].keys()]  # 5/16/2022 --kw-- adding default behavior w/o input, repopulate list w/o ranking
         nonCorr_icns = [icn_lookup for icn_lookup in self.gd['icn'].keys() if 
-                        icn_lookup not in self.corrs[ica_lookup].keys()]
-        nonCorr_icns = [icn_lookup for icn_lookup in nonCorr_icns if 
-                        icn_lookup not in nonCorr_extras]
-        
+                        icn_lookup not in nonCorr_extras]  # 5/16/2022 --kw-- adding default behavior w/o input, repopulate list w/o ranking
+        # nonCorr_icns = [icn_lookup for icn_lookup in nonCorr_icns if 
+        #                 icn_lookup not in nonCorr_extras]  # 5/16/2022 --kw-- adding default behavior w/o input, repopulate list w/o ranking
+        if ica_lookup:  # 5/16/2022 --kw-- adding default behavior w/o input, repopulate list w/o ranking
+            if ica_lookup in self.corrs.keys():
+                nonCorr_extras = [extra for extra in nonCorr_extras if 
+                                  extra not in self.corrs[ica_lookup].keys()]
+                nonCorr_icns = [icn_lookup for icn_lookup in nonCorr_icns if 
+                                icn_lookup not in self.corrs[ica_lookup].keys()]
         for icn_lookup in nonCorr_icns:
             item = QtWidgets.QListWidgetItem(icn_lookup)
             self.listWidget_ICNtemplates.addItem(item)
@@ -1396,7 +1485,7 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
         mapping_lookup = "%s > %s" %(ica_custom_name, icn_custom_name)
         
         # Determine add item or update existing item
-        rm_gd_entry = False # rm. gd entry w/ outdated info
+        rm_gd_entry = False # default to not removing gd entry w/ outdated info
         new_mapping_item = True # default to creating new item in mapping listwidget
         if (ica_lookup and icn_lookup):
             if ica_lookup in self.gd['mapped_ica'].keys():
@@ -1436,9 +1525,12 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
         
         # If ICA multiClass not enabled, remove ICA item from ICA listwidget
         if ica_lookup and not self.config['ica']['allow_multiclassifications']:
-            ica_items = self.listWidget_ICAComponents.findItems(ica_lookup, Qt.MatchExactly)
+            ica_display_name = self.gd['ica'][ica_lookup]['display_name']
+            ica_items = self.listWidget_ICAComponents.findItems(ica_display_name, Qt.MatchExactly)
+            # ica_items = self.listWidget_ICAComponents.findItems(ica_lookup, Qt.MatchExactly)  # 6/9/2022 --kw-- debugging
             for ica_item in ica_items:
                 self.listWidget_ICAComponents.takeItem(self.listWidget_ICAComponents.row(ica_item))
+            self.gd['ica'][ica_lookup]['widget'] = None
         
         # Link widget items to mapped ICs/ICNs
         if ica_lookup:
@@ -1736,6 +1828,7 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
         without changing global plotting options"""
         
         ica_lookup, icn_lookup = self.get_current_networks()
+        
         if ica_lookup or icn_lookup:
             options = self.get_plot_options(ica_lookup, icn_lookup, coords_from_sliders=True)
             self.plot_vols(self.figure_x, **options)
@@ -1945,8 +2038,7 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
         if self.buttonGroup_xview.checkedButton() == self.radioButton_ortho:
             if event.inaxes is None:
                 return
-            
-            # axes indices based on plotting limits ~ MNI coords
+            # get axes indices based on subplot handles, axes coords ~ MNI coords
             elif event.inaxes == self.figure_x.axes[1]: #coronal section
                 x = event.xdata
                 y = self.horizontalSlider_Yslice.value()
@@ -2168,7 +2260,7 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
             Fs = kwargs['sampling_rate']
         else:
             Fs = self.tp['global']['sampling_rate']
-
+            
         # No plots-to-render conditions
         if not show_time_series and not show_spectrum:
             return
@@ -2190,14 +2282,18 @@ class NetworkZooGUI(QtWidgets.QMainWindow, zoo_MainWin.Ui_MainWindow):
             if isinstance(fig, gridspec.GridSpec):
                 gs = gridspec.GridSpecFromSubplotSpec(2, 5, fig)
             else:
-                gs = gridspec.GridSpec(2, 5)
-                
+                gs = gridspec.GridSpec(2, 5, fig)  # 5/16/2022 --kw-- debugging mangling of t.s. plot on click
+                # gs = gridspec.GridSpec(2, 5)  # 5/16/2022 --kw-- debugging mangling of t.s. plot on click
             if show_time_series and show_spectrum: 
-                axts, axps = plt.subplot(gs[:, 3:]), plt.subplot(gs[:, :3])
+                axts, axps = fig.add_subplot(gs[:, 3:]), fig.add_subplot(gs[:, :3])   # 5/16/2022 --kw-- debugging
+                # axts, axps = plt.subplot(gs[:, 3:]), plt.subplot(gs[:, :3])   # 5/16/2022 --kw-- debugging, plt.subplot line mangles t.s. plot on click
             elif not show_time_series and show_spectrum:
-                axps = plt.subplot(gs[:, :])  # handle for powerspectrum subplots 
+                axps = fig.add_subplot(gs[:, :])  # handle for powerspectrum subplots  # 5/16/2022 --kw-- debugging
+                # axps = plt.subplot(gs[:, :])  # handle for powerspectrum subplots  # 5/16/2022 --kw-- debugging, line mangles t.s. plot on click
             elif show_time_series and not show_spectrum:
-                axts = plt.subplot(gs[:, :])  # handle for single time series subplot
+                axts = fig.add_subplot(gs[:, :])  # handle for single time series subplot  # 5/16/2022 --kw-- debugging
+                # axts = plt.subplot(gs[:, :])  # handle for single time series subplot  # 5/16/2022 --kw-- debugging, line mangles t.s. plot on click
+            
         if show_time_series:
             ts = self.gd['ica'][ica_lookup]['timeseries']
             n = len(ts)

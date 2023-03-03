@@ -9,7 +9,7 @@ from PyQt5.QtCore import Qt
 
 # Mathematical/Neuroimaging/Plotting Libraries
 import numpy as np
-from nilearn import plotting, image, input_data  # library for neuroimaging
+from nilearn import plotting, image  # library for neuroimaging
 from nibabel.nifti1 import Nifti1Image, Nifti1Pair
 import nipype.interfaces.io as nio
 
@@ -305,7 +305,6 @@ class InputHandling(object):
                                           'widget': widget_item}
 
 
-        
     def browse_ica_files(self, state=None):
         """File browser to select & load ICA files"""
         
@@ -323,7 +322,7 @@ class InputHandling(object):
             if len([f for f in filter(r1.search, ica_files)]) > 0: # mistaken selection in input         
                 ts_files = [f for f in filter(r1.search, ica_files)]
                 comp_files = [f.replace('timecourses',
-                                       'component') for f in ts_files]
+                                        'component') for f in ts_files]
                 ica_files += comp_files 
             if len(ica_files) == 1:
                 ica_dir = os.path.dirname(ica_files[0])
@@ -340,11 +339,18 @@ class InputHandling(object):
                     message = "Nifti time series file or GIFT time courses choosen/entered,"
                     message += " please select 3D or 4D nifti files"
                     QtWidgets.QMessageBox.warning(None, title, message)
-                    
             else:
                 self.load_ica_timeseries(ica_files=ica_files, 
                                          search_toolbox_output=True, 
                                          prompt_fileDialog=True)
+            for ica_file in ica_files:
+                csv_fname = None
+                if os.path.isfile(os.path.splitext(ica_file)[0] + '.csv'):
+                    csv_fname = os.path.splitext(ica_file)[0] + '.csv'
+                elif os.path.isfile(os.path.splitext(os.path.splitext(ica_file)[0])[0] + '.csv'):
+                    csv_fname = os.path.splitext(os.path.splitext(ica_file)[0])[0] + '.csv'
+                if csv_fname:
+                    self.load_ic_customNames(csv_fname, list_name='ica')
             
 
     def load_ica_timeseries(self, ica_files=None, 
@@ -449,7 +455,8 @@ class InputHandling(object):
             ica_ts = image.load_img(ts_file)
             vol_dim = len(ica_ts.shape)
             if vol_dim != 2: # expect [time x ICs] vol.
-                next # skip if 3D/4D nifti vol. loaded by mistake
+                continue # skip if 3D/4D nifti vol. loaded by mistake
+                # next # skip if 3D/4D nifti vol. loaded by mistake  # 6/10/2022 --kw-- next not a python keyword
             else:
                 for lookup_key in self.gd['ica'].keys():
                     if ica_file == self.gd['ica'][lookup_key]['filepath']:
@@ -475,22 +482,29 @@ class InputHandling(object):
             self.add_files_to_list(self.listWidget_ICN, 'icn', icn_files,
                                    search_pattern=self.config['icn']['search_pattern'],
                                    extra_items=self.config['icn']['extra_items'])
-            
-            if len(icn_files) == 1:     #check if .csv table accompanies 4d nifti icn_file w/ ICN names
-                if os.path.isfile(os.path.splitext(icn_files[0])[0] + '.csv'):
-                    find_csv_labels = False
-                    csv_fname = os.path.splitext(icn_files[0])[0] + '.csv'
+            for icn_file in icn_files:
+                csv_fname = None
+                if os.path.isfile(os.path.splitext(icn_file)[0] + '.csv'):
+                    csv_fname = os.path.splitext(icn_file)[0] + '.csv'
+                elif os.path.isfile(os.path.splitext(os.path.splitext(icn_file)[0])[0] + '.csv'):
+                    csv_fname = os.path.splitext(os.path.splitext(icn_file)[0])[0] + '.csv'
+                if csv_fname:
                     self.load_ic_customNames(csv_fname, list_name='icn')
-                elif os.path.isfile(os.path.splitext(os.path.splitext(icn_files[0])[0])[0] + '.csv'):
-                    find_csv_labels = False
-                    csv_fname = os.path.splitext(os.path.splitext(icn_files[0])[0])[0] + '.csv'
-                    self.load_ic_customNames(csv_fname, list_name='icn')
-                else:
-                    find_csv_labels = True
-            elif len(icn_files) > 1:
-                find_csv_labels = True
-            else:
-                find_csv_labels = False
+            # if len(icn_files) == 1: #check if .csv table accompanies 4d nifti icn_file w/ ICN names  # 6/10/2022 --kw-- testing multiple file handling
+                # if os.path.isfile(os.path.splitext(icn_files[0])[0] + '.csv'):
+                #     # find_csv_labels = False   # 6/10/2022 --kw-- deprecated var.
+                #     csv_fname = os.path.splitext(icn_files[0])[0] + '.csv'
+                #     self.load_ic_customNames(csv_fname, list_name='icn')
+                # elif os.path.isfile(os.path.splitext(os.path.splitext(icn_files[0])[0])[0] + '.csv'):
+                #     # find_csv_labels = False  # 6/10/2022 --kw-- deprecated var.
+                #     csv_fname = os.path.splitext(os.path.splitext(icn_files[0])[0])[0] + '.csv'
+                #     self.load_ic_customNames(csv_fname, list_name='icn')
+            #     else:   # 6/10/2022 --kw-- deprecated var. & fn.
+            #         find_csv_labels = True
+            # elif len(icn_files) > 1:
+            #     find_csv_labels = True
+            # else:
+            #     find_csv_labels = False
                 
 
     def load_ic_customNames(self, fname=None, list_name='icn'):
@@ -510,6 +524,7 @@ class InputHandling(object):
             if not os.path.isfile(fname):
                 fname = None
         if fname:
+            print('Re-naming '+list_name+' items using labels in file: '+fname)
             if fname.endswith('.csv'):
                 with open(fname) as f:
                     names_file = list(csv.reader(f))
@@ -519,21 +534,26 @@ class InputHandling(object):
                 names_file = [x.strip() for x in names_file]
                 names_file = [x.split() for x in names_file]
             
-            # Check if 1st row is a header:
-            likely_header_names = ['ICA Component', 'ICA File', 'ICA Label',
-                                   'ICN Template', 'ICN File', 'ICN Label', 
-                                   'Noise Classification']
-            names_file0 = names_file[0]
-            names_file0 = [colname.replace(':','') for colname in names_file0]
-            if any([colname in likely_header_names for colname in names_file0]):
-                header, content = names_file[0], names_file[1:]
+            # Check header for required original & custom names columns:
+            orig_names_col = ['Component', 'Filename', 'File', 'Template']
+            new_names_col = ['Label', 'Classification']
+            names_file_header = names_file[0]
+            names_file_header = [colname.replace(':','') for colname in names_file_header]
+            names_check0 = [colname in orig_names_col for colname in names_file_header]
+            names_check1 = [colname in new_names_col for colname in names_file_header]
+            if any(names_check0) and any(names_check1):
+                c0 = min([i for i,x in enumerate(names_check0) if x])  # get 1st matching col. name for original names
+                c1 = min([i for i,x in enumerate(names_check1) if x])  # get 1st matching col. name for new names
+                content = names_file[1:]
+                # content = names_file[1:][c0,c1]  # 6/13/2022 --kw-- debugging, list indexing
             else:
-                content = names_file
+                return
+                # content = names_file  # 6/10/2022 --kw-- deprecated, skip renaming if expected cols. not matched out of an abundance of caution
             
-            # 1st col. is existing IC name (~file name), 2nd col. is new/customized IC name
             ic_dict = {}
             for ic in range(len(content)):
-                ic_dict.update({content[ic][0] : content[ic][1]})
+                ic_dict.update({content[ic][c0] : content[ic][c1]})  # 6/13/2022 --kw-- note: requires 'c0' & 'c1' from above
+                # ic_dict.update({content[ic][0] : content[ic][1]})  # 6/13/2022 --kw-- debugging
             fail_flag = self.replace_ic_customNames(ic_dict, list_name)
             
             if fail_flag:
@@ -542,6 +562,31 @@ class InputHandling(object):
                 QtWidgets.QMessageBox.warning(None, title, message)
             else:
                 self.config[list_name]['labels_file'] = fname
+
+            # 6/10/2022 --kw-- tweaking expected filenames, added ability to search for expected headers
+            # # Check if 1st row is a header:
+            # likely_header_names = ['ICA Component', 'ICA File', 'ICA Label',
+            #                        'ICN Template', 'ICN File', 'ICN Label', 
+            #                        'Noise Classification']
+            # names_file0 = names_file[0]
+            # names_file0 = [colname.replace(':','') for colname in names_file0]
+            # if any([colname in likely_header_names for colname in names_file0]):
+            #     header, content = names_file[0], names_file[1:]
+            # else:
+            #     content = names_file
+#             
+#             # 1st col. is existing IC name (~file name), 2nd col. is new/customized IC name
+#             ic_dict = {}
+#             for ic in range(len(content)):
+#                 ic_dict.update({content[ic][0] : content[ic][1]})
+#             fail_flag = self.replace_ic_customNames(ic_dict, list_name)
+            
+#             if fail_flag:
+#                 title = "Error loading saved/custom IC names"
+#                 message = "One or more old IC labels not found in current list of IC names"
+#                 QtWidgets.QMessageBox.warning(None, title, message)
+#             else:
+#                 self.config[list_name]['labels_file'] = fname
                 
 
     def replace_ic_customNames(self, ic_dict, list_name='icn', listWidget=None):
@@ -620,7 +665,7 @@ class InputHandling(object):
             else:
                 if not any([keys2_lookups, keys2_files, keys2_inds]):
                     fail_flag = True
-                    next
+                    continue
                 for key2,replacement2 in ic_dict[key1].items():
                     k2, old_name, new_name = [], None, None
                     if isinstance(replacement2, str):
@@ -743,6 +788,7 @@ class InputHandling(object):
         for lookup_key in self.gd['ica'].keys():
             file = self.gd['ica'][lookup_key]['filepath']
             ica_IndstoNames[file].update([(self.gd['ica'][lookup_key]['vol_ind'], lookup_key)])
+        ica_customNames = {lookup_key : self.gd['ica'][lookup_key]['display_name'] for lookup_key in self.gd['ica'].keys()}  # 6/8/2022 --kw-- adding save & loading for custom ICA names
         icn_files = [self.gd['icn'][lookup_key]['filepath'] for lookup_key in self.gd['icn'].keys()]
         icn_files = list(set(icn_files))
         icn_files = [f for f in icn_files if f is not None]
@@ -752,8 +798,9 @@ class InputHandling(object):
         for lookup_key in self.gd['icn'].keys():
             file = self.gd['icn'][lookup_key]['filepath']
             if file is not None:
-                icn_IndstoNames[file].update([(self.gd['icn'][lookup_key]['vol_ind'], lookup_key)])
-                
+                icn_IndstoNames[file].update([(self.gd['icn'][lookup_key]['vol_ind'], lookup_key)])        
+        icn_customNames = {lookup_key : self.gd['icn'][lookup_key]['display_name'] for lookup_key in self.gd['icn'].keys()}  # 6/8/2022 --kw-- adding save & loading for custom ICN names
+        
         corrs = self.corrs
         
         ica_icn_mapped = {self.gd['mapped'][mapping_key]['ica_lookup'] : self.gd['mapped'][mapping_key]['icn_lookup'] for mapping_key in self.gd['mapped'].keys()}
@@ -765,8 +812,10 @@ class InputHandling(object):
                         'ica_files' : ica_files, 
                         'ica_ts_files' : ica_ts_files,
                         'ica_IndstoNames' : ica_IndstoNames, 
+                        'ica_customNames' : ica_customNames,  # 6/8/2022 --kw-- added save & load custom names feature
                         'icn_files' : icn_files,
                         'icn_IndstoNames' : icn_IndstoNames, 
+                        'icn_customNames' : icn_customNames,  # 6/8/2022 --kw-- added save & load custom names feature
                         'corrs' : corrs, 
                         'ica_icn_mapped' :ica_icn_mapped, 
                         'ica_mapped_customNames' : ica_mapped_customNames, 
@@ -804,8 +853,10 @@ class InputHandling(object):
             ica_files              = analysisInfo['ica_files'] # ICA file paths
             ica_IndstoNames        = analysisInfo['ica_IndstoNames'] # 4d nii indices for above files
             ica_ts_files           = analysisInfo['ica_ts_files']  # file paths to time series
+            ica_customNames        = analysisInfo['ica_customNames'] # custom display names   # 6/8/2022 --kw-- adding save/load customnames features
             icn_files              = analysisInfo['icn_files'] # ICN template file paths
             icn_IndstoNames        = analysisInfo['icn_IndstoNames'] # 4d nii indices for above files
+            icn_customNames        = analysisInfo['icn_customNames'] # custom display names   # 6/8/2022 --kw-- adding save/load customnames features
             corrs                  = analysisInfo['corrs'] # dict of correlations, indexed as IC : ICN
             ica_icn_mapped         = analysisInfo['ica_icn_mapped'] # dict of ICA > ICN mappings
             ica_mapped_customNames = analysisInfo['ica_mapped_customNames'] # custom ICA names for above
@@ -850,11 +901,13 @@ class InputHandling(object):
                                    ica_files, file_inds=ica_IndstoNames,
                                    search_pattern=self.config['ica']['search_pattern'], 
                                    append=False)
-            
             if ica_ts_files is not None:
                 self.load_ica_timeseries(ica_files=ica_ts_files, 
                                          prompt_fileDialog=False, 
                                          search_toolbox_output=False)
+            if ica_customNames is not None:     # 6/8/2022 --kw-- new feature, save/load custom display names
+                for ica_lookup in ica_customNames.keys():
+                    self.gd['ica'][ica_lookup]['display_name'] = ica_customNames[ica_lookup]
             
             extra_template_items = self.config['icn']['extra_items'].copy()
             extra_template_items += self.config['noise']['extra_items'].copy()
@@ -863,6 +916,10 @@ class InputHandling(object):
                                    search_pattern=self.config['icn']['search_pattern'],
                                    extra_items=extra_template_items,
                                    append=False)
+            if icn_customNames is not None:                          # 6/8/2022 --kw-- new feature, save/load custom display names
+                for icn_lookup in icn_customNames.keys():
+                    self.gd['icn'][icn_lookup]['display_name'] = icn_customNames[icn_lookup]
+
             if corrs is not None:
                 self.corrs = corrs
                 
@@ -906,11 +963,11 @@ class InputHandling(object):
             self.listWidget_mapped.addItem(map_itemWidget)
             map_itemWidget.setData(Qt.UserRole, mapping_lookup)
             
-            # Remove ICA item from ICA listwidget (but not in gd['ica'])
-            if not self.config['ica']['allow_multiclassifications']:
-                ica_items = self.listWidget_ICA.findItems(ica_lookup, Qt.MatchExactly)
-                for ica_item in ica_items:
-                    self.listWidget_ICA.takeItem(self.listWidget_ICA.row(ica_item))
+            # # Remove ICA item from ICA listwidget (but not in gd['ica'])  # 6/13/2022 --kw-- moved to below
+            # if not self.config['ica']['allow_multiclassifications']:
+            #     ica_items = self.listWidget_ICA.findItems(ica_lookup, Qt.MatchExactly)
+            #     for ica_item in ica_items:
+            #         self.listWidget_ICA.takeItem(self.listWidget_ICA.row(ica_item))
 
         elif icn_lookup: 
             # Create new empty mapping to ICN mask, for visualization purposes
@@ -941,7 +998,17 @@ class InputHandling(object):
                 self.gd['mapped_icn'][icn_lookup].update({ica_lookup : map_itemWidget})
             else:
                 self.gd['mapped_icn'][icn_lookup].update({'template' : map_itemWidget})
-                
+        
+        # Remove ICA item from ICA listwidget (but not in gd['ica'])
+        if ica_lookup and not self.config['ica']['allow_multiclassifications']:
+            ica_display_name = self.gd['ica'][ica_lookup]['display_name']
+            ica_items = self.listWidget_ICA.findItems(ica_display_name, Qt.MatchExactly)
+            # ica_items = self.listWidget_ICA.findItems(ica_lookup, Qt.MatchExactly)  # 6/13/2022 --kw-- deprecated
+            for ica_item in ica_items:
+                self.listWidget_ICA.takeItem(self.listWidget_ICA.row(ica_item))
+            self.gd['ica'][ica_lookup]['widget'] = None
+
+
     @staticmethod
     def replace_faulty_config(config_file, mypath=None, config_backup=None):
         """Delete faulty config file, replace w/ backup config file"""

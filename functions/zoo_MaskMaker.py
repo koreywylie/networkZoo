@@ -2,7 +2,7 @@
 import os, sys, re, json, csv
 from os.path import join as opj  # method to join strings of file paths
 import numpy as np
-from nilearn import plotting, image, input_data  # library for neuroimaging
+from nilearn import plotting, image  # library for neuroimaging
 from nilearn import masking
 from scipy.ndimage import binary_dilation #used to smooth edges of binary masks
 from nibabel.nifti1 import Nifti1Image, Nifti1Pair
